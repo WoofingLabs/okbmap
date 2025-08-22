@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body {
@@ -33,13 +33,20 @@
             margin-bottom: 5px;
             font-size: 14px;
         }
-        input[type="color"] {
+        select {
             width: 100%;
             height: 30px;
-            padding: 0;
+            padding: 0 5px;
             border: 1px solid #444444;
             background: #2d2d2d;
+            color: #ffffff;
             border-radius: 4px;
+            appearance: none;
+            cursor: pointer;
+        }
+        select option {
+            background: #2d2d2d;
+            color: #ffffff;
         }
         input[type="text"] {
             width: 100%;
@@ -140,27 +147,273 @@
             <div class="controls">
                 <div class="control-group">
                     <label for="centerColor">中心颜色 (3,3)</label>
-                    <input type="color" id="centerColor" value="#FF0000" disabled>
+                    <select id="centerColor" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
                 <div class="control-group">
                     <label for="corner1Color">左上角颜色 (2,2)</label>
-                    <input type="color" id="corner1Color" value="#00FF00" disabled>
+                    <select id="corner1Color" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
                 <div class="control-group">
                     <label for="corner2Color">右上角颜色 (2,4)</label>
-                    <input type="color" id="corner2Color" value="#0000FF" disabled>
+                    <select id="corner2Color" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
                 <div class="control-group">
                     <label for="corner3Color">左下角颜色 (4,2)</label>
-                    <input type="color" id="corner3Color" value="#FFFF00" disabled>
+                    <select id="corner3Color" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
                 <div class="control-group">
                     <label for="corner4Color">右下角颜色 (4,4)</label>
-                    <input type="color" id="corner4Color" value="#FFFFFF" disabled>
+                    <select id="corner4Color" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
                 <div class="control-group">
                     <label for="defaultColor">默认颜色</label>
-                    <input type="color" id="defaultColor" value="#000000" disabled>
+                    <select id="defaultColor" disabled>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
                 </div>
             </div>
             <div class="action-buttons">
@@ -620,7 +873,7 @@
             colors.corner4 = newColors.corner4;
             colors.default = newColors.default;
 
-            // 更新输入框值
+            // 更新下拉框选中值
             document.getElementById('centerColor').value = colors.center;
             document.getElementById('corner1Color').value = colors.corner1;
             document.getElementById('corner2Color').value = colors.corner2;
@@ -797,32 +1050,32 @@
 
         // Event Listeners
         document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        document.getElementById('centerColor').addEventListener('input', () => {
+        document.getElementById('centerColor').addEventListener('change', () => {
             colors.center = document.getElementById('centerColor').value;
             checkColorConflict();
             drawGrid();
         });
-        document.getElementById('corner1Color').addEventListener('input', () => {
+        document.getElementById('corner1Color').addEventListener('change', () => {
             colors.corner1 = document.getElementById('corner1Color').value;
             checkColorConflict();
             drawGrid();
         });
-        document.getElementById('corner2Color').addEventListener('input', () => {
+        document.getElementById('corner2Color').addEventListener('change', () => {
             colors.corner2 = document.getElementById('corner2Color').value;
             checkColorConflict();
             drawGrid();
         });
-        document.getElementById('corner3Color').addEventListener('input', () => {
+        document.getElementById('corner3Color').addEventListener('change', () => {
             colors.corner3 = document.getElementById('corner3Color').value;
             checkColorConflict();
             drawGrid();
         });
-        document.getElementById('corner4Color').addEventListener('input', () => {
+        document.getElementById('corner4Color').addEventListener('change', () => {
             colors.corner4 = document.getElementById('corner4Color').value;
             checkColorConflict();
             drawGrid();
         });
-        document.getElementById('defaultColor').addEventListener('input', () => {
+        document.getElementById('defaultColor').addEventListener('change', () => {
             colors.default = document.getElementById('defaultColor').value;
             checkColorConflict();
             drawGrid();
