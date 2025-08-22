@@ -3,136 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map 网格定制器</title>
+    <title>OKB Map</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
-        body {
-            background: #000000;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            color: #ffffff;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #1a1a1a;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        h1 {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .section {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-        select {
-            width: 100%;
-            height: 30px;
-            padding: 0 5px;
-            border: 1px solid #444444;
-            background: #2d2d2d;
-            color: #ffffff;
-            border-radius: 4px;
-            appearance: none;
-            cursor: pointer;
-        }
-        select option {
-            background: #2d2d2d;
-            color: #ffffff;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            background: #2d2d2d;
-            border: 1px solid #444444;
-            color: #ffffff;
-            border-radius: 4px;
-        }
-        button {
-            background: #333333;
-            color: #ffffff;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 5px;
-        }
-        button:hover {
-            background: #444444;
-        }
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        .status {
-            margin-top: 10px;
-            font-size: 14px;
-            text-align: center;
-        }
-        .disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        #gridCanvas {
-            width: 100%;
-            max-width: 300px;
-            height: 300px;
-            display: block;
-            margin: 0 auto 20px;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .nft-viewer {
-            margin-top: 20px;
-        }
-        .nft-viewer h2 {
-            font-size: 18px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        #nftList {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-        .nft-card {
-            background: #2d2d2d;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .nft-card img {
-            width: 100%;
-            max-width: 120px;
-            height: auto;
-            border-radius: 4px;
-        }
-        .nft-card p {
-            font-size: 12px;
-            margin: 5px 0;
-        }
+        body { background: #000000; font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #ffffff; }
+        .container { max-width: 600px; margin: 0 auto; background: #1a1a1a; padding: 20px; border-radius: 8px; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
+        .section { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; }
+        select { width: 100%; height: 30px; padding: 0 5px; border: 1px solid #444444; background: #2d2d2d; color: #ffffff; border-radius: 4px; appearance: none; cursor: pointer; }
+        select option { background: #2d2d2d; color: #ffffff; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; background: #2d2d2d; border: 1px solid #444444; color: #ffffff; border-radius: 4px; }
+        button { background: #333333; color: #ffffff; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        button:hover { background: #444444; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .control-group { display: flex; flex-direction: column; align-items: flex-start; }
+        .status { margin-top: 10px; font-size: 14px; text-align: center; }
+        .disabled { opacity: 0.5; pointer-events: none; }
+        #gridCanvas { width: 100%; max-width: 300px; height: 300px; display: block; margin: 0 auto 20px; border: 1px solid #444444; border-radius: 4px; }
+        .action-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .nft-viewer { margin-top: 20px; }
+        .nft-viewer h2 { font-size: 18px; text-align: center; margin-bottom: 10px; }
+        #nftList { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .nft-card { background: #2d2d2d; padding: 10px; border-radius: 4px; text-align: center; }
+        .nft-card img { width: 100%; max-width: 120px; height: auto; border-radius: 4px; }
+        .nft-card p { font-size: 12px; margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -415,6 +310,52 @@
                         <option value="#FFB6C1">浅粉</option>
                     </select>
                 </div>
+                <div class="control-group">
+                    <label for="borderColor">边框颜色</label>
+                    <select id="borderColor" disabled>
+                        <option value="none">无</option>
+                        <option value="#FF0000">红色</option>
+                        <option value="#00FF00">绿色</option>
+                        <option value="#0000FF">蓝色</option>
+                        <option value="#FFFF00">黄色</option>
+                        <option value="#FF00FF">品红</option>
+                        <option value="#00FFFF">青色</option>
+                        <option value="#FFFFFF">白色</option>
+                        <option value="#000000">黑色</option>
+                        <option value="#FF4500">橙红色</option>
+                        <option value="#FFA500">橙色</option>
+                        <option value="#FFD700">金色</option>
+                        <option value="#ADFF2F">绿黄色</option>
+                        <option value="#9ACD32">橄榄绿</option>
+                        <option value="#32CD32">闪光绿</option>
+                        <option value="#228B22">森林绿</option>
+                        <option value="#4169E1">皇家蓝</option>
+                        <option value="#1E90FF">闪电蓝</option>
+                        <option value="#00B7EB">深天蓝</option>
+                        <option value="#6A5ACD">石板蓝</option>
+                        <option value="#8A2BE2">蓝紫</option>
+                        <option value="#9370DB">中紫</option>
+                        <option value="#DDA0DD">李子色</option>
+                        <option value="#FF69B4">热情粉</option>
+                        <option value="#FF1493">深粉</option>
+                        <option value="#C71585">中紫红</option>
+                        <option value="#CD5C5C">印度红</option>
+                        <option value="#DC143C">猩红</option>
+                        <option value="#B22222">耐火砖红</option>
+                        <option value="#F4A460">沙棕</option>
+                        <option value="#D2691E">巧克力色</option>
+                        <option value="#8B4513">鞍棕</option>
+                        <option value="#A52A2A">棕色</option>
+                        <option value="#DEB887">硬木色</option>
+                        <option value="#D2B48C">棕褐色</option>
+                        <option value="#F0E68C">卡其色</option>
+                        <option value="#98FB98">浅绿</option>
+                        <option value="#AFEEEE">浅青</option>
+                        <option value="#87CEEB">天空蓝</option>
+                        <option value="#E6E6FA">淡紫</option>
+                        <option value="#FFB6C1">浅粉</option>
+                    </select>
+                </div>
             </div>
             <div class="action-buttons">
                 <button id="randomizeBtn" onclick="randomizeColors()" disabled>随机颜色</button>
@@ -432,127 +373,9 @@
     <script>
         let web3, accounts, contract;
         const CONTRACT_ADDRESS = '0x2C3568EA818D06929907de160EB6EDFa002d18a0';
-        const MINT_PRICE = '100000000000000000'; // 0.1 OKB
-        const xLayer = { chainId: 196, rpcUrl: 'https://rpc.xlayer.tech' };
+        const MINT_PRICE = '100000000000000000'; // 0.1 ether
 
         const CONTRACT_ABI = [
-            {
-                "inputs": [],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": true, "internalType": "address", "name": "owner", "type": "address"},
-                    {"indexed": true, "internalType": "address", "name": "approved", "type": "address"},
-                    {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "Approval",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": true, "internalType": "address", "name": "owner", "type": "address"},
-                    {"indexed": true, "internalType": "address", "name": "operator", "type": "address"},
-                    {"indexed": false, "internalType": "bool", "name": "approved", "type": "bool"}
-                ],
-                "name": "ApprovalForAll",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": true, "internalType": "address", "name": "previousOwner", "type": "address"},
-                    {"indexed": true, "internalType": "address", "name": "newOwner", "type": "address"}
-                ],
-                "name": "OwnershipTransferred",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": true, "internalType": "address", "name": "from", "type": "address"},
-                    {"indexed": true, "internalType": "address", "name": "to", "type": "address"},
-                    {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "Transfer",
-                "type": "event"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "name": "addressMintedBalance",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "approve",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "owner", "type": "address"}
-                ],
-                "name": "balanceOf",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "cost",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "getApproved",
-                "outputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "owner", "type": "address"},
-                    {"internalType": "address", "name": "operator", "type": "address"}
-                ],
-                "name": "isApprovedForAll",
-                "outputs": [
-                    {"internalType": "bool", "name": "", "type": "bool"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "maxSupply",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
             {
                 "inputs": [
                     {"internalType": "string", "name": "uri", "type": "string"},
@@ -565,144 +388,11 @@
             },
             {
                 "inputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
+                    {"internalType": "address", "name": "_owner", "type": "address"}
                 ],
-                "name": "mintedCount",
+                "name": "walletOfOwner",
                 "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "name",
-                "outputs": [
-                    {"internalType": "string", "name": "", "type": "string"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-                    {"internalType": "string", "name": "uri", "type": "string"},
-                    {"internalType": "bytes32", "name": "attributes", "type": "bytes32"}
-                ],
-                "name": "ownerMintWithData",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "ownerOf",
-                "outputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "renounceOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "safeTransferFrom",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-                    {"internalType": "bytes", "name": "_data", "type": "bytes"}
-                ],
-                "name": "safeTransferFrom",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "operator", "type": "address"},
-                    {"internalType": "bool", "name": "_approved", "type": "bool"}
-                ],
-                "name": "setApprovalForAll",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "uint256", "name": "_newCost", "type": "uint256"}
-                ],
-                "name": "setCost",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "bytes4", "name": "interfaceId", "type": "bytes4"}
-                ],
-                "name": "supportsInterface",
-                "outputs": [
-                    {"internalType": "bool", "name": "", "type": "bool"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "symbol",
-                "outputs": [
-                    {"internalType": "string", "name": "", "type": "string"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "uint256", "name": "index", "type": "uint256"}
-                ],
-                "name": "tokenByIndex",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "owner", "type": "address"},
-                    {"internalType": "uint256", "name": "index", "type": "uint256"}
-                ],
-                "name": "tokenOfOwnerByIndex",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
+                    {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
                 ],
                 "stateMutability": "view",
                 "type": "function"
@@ -719,35 +409,6 @@
                 "type": "function"
             },
             {
-                "inputs": [],
-                "name": "totalSupply",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "from", "type": "address"},
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
-                ],
-                "name": "transferFrom",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "newOwner", "type": "address"}
-                ],
-                "name": "transferOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
                 "inputs": [
                     {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
                     {"internalType": "string", "name": "newTokenURI", "type": "string"}
@@ -759,24 +420,11 @@
             },
             {
                 "inputs": [
-                    {"internalType": "bytes32", "name": "", "type": "bytes32"}
+                    {"internalType": "uint256", "name": "_newCost", "type": "uint256"}
                 ],
-                "name": "usedAttributeCombinations",
-                "outputs": [
-                    {"internalType": "bool", "name": "", "type": "bool"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "_owner", "type": "address"}
-                ],
-                "name": "walletOfOwner",
-                "outputs": [
-                    {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
-                ],
-                "stateMutability": "view",
+                "name": "setCost",
+                "outputs": [],
+                "stateMutability": "nonpayable",
                 "type": "function"
             },
             {
@@ -784,6 +432,18 @@
                 "name": "withdraw",
                 "outputs": [],
                 "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "to", "type": "address"},
+                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+                    {"internalType": "string", "name": "uri", "type": "string"},
+                    {"internalType": "bytes32", "name": "attributes", "type": "bytes32"}
+                ],
+                "name": "ownerMintWithData",
+                "outputs": [],
+                "stateMutability": "nonpayable",
                 "type": "function"
             }
         ];
@@ -799,7 +459,8 @@
             corner2: '#0000FF', // (2,4)
             corner3: '#FFFF00', // (4,2)
             corner4: '#FFFFFF', // (4,4)
-            default: '#000000'
+            default: '#000000',
+            border: 'none' // 默认无边框
         };
 
         const colorOptions = [
@@ -817,14 +478,19 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let row = 1; row <= gridSize; row++) {
                 for (let col = 1; col <= gridSize; col++) {
-                    let color = colors.default;
-                    if (row === 3 && col === 3) color = colors.center;
-                    else if (row === 2 && col === 2) color = colors.corner1;
-                    else if (row === 2 && col === 4) color = colors.corner2;
-                    else if (row === 4 && col === 2) color = colors.corner3;
-                    else if (row === 4 && col === 4) color = colors.corner4;
-                    ctx.fillStyle = color;
+                    let fillColor = colors.default;
+                    if (row === 3 && col === 3) fillColor = colors.center;
+                    else if (row === 2 && col === 2) fillColor = colors.corner1;
+                    else if (row === 2 && col === 4) fillColor = colors.corner2;
+                    else if (row === 4 && col === 2) fillColor = colors.corner3;
+                    else if (row === 4 && col === 4) fillColor = colors.corner4;
+                    ctx.fillStyle = fillColor;
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
+                    if (colors.border !== 'none') {
+                        ctx.strokeStyle = colors.border;
+                        ctx.lineWidth = 1; // 非常细的边框
+                        ctx.strokeRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
+                    }
                 }
             }
         }
@@ -833,11 +499,9 @@
             let newColors = {};
             const usedColors = new Set();
 
-            // 随机选择默认颜色
             newColors.default = colorOptions[Math.floor(Math.random() * colorOptions.length)];
             usedColors.add(newColors.default);
 
-            // 确保5个格子的颜色与默认颜色不同
             let availableColors = colorOptions.filter(color => !usedColors.has(color));
             if (availableColors.length < 5) {
                 alert('可用颜色不足，请重试或调整默认颜色。');
@@ -862,24 +526,27 @@
 
             newColors.corner4 = availableColors.length > 0 ? availableColors[Math.floor(Math.random() * availableColors.length)] : colorOptions[Math.floor(Math.random() * colorOptions.length)];
             if (newColors.corner4 === newColors.default) {
-                newColors.corner4 = colorOptions.find(color => !usedColors.has(color) && color !== newColors.default) || '#808080'; // 备用灰色
+                newColors.corner4 = colorOptions.find(color => !usedColors.has(color) && color !== newColors.default) || '#808080';
             }
 
-            // 更新颜色对象
+            // 随机选择边框颜色，默认无
+            newColors.border = ['none'].concat(colorOptions)[Math.floor(Math.random() * (colorOptions.length + 1))];
+
             colors.center = newColors.center;
             colors.corner1 = newColors.corner1;
             colors.corner2 = newColors.corner2;
             colors.corner3 = newColors.corner3;
             colors.corner4 = newColors.corner4;
             colors.default = newColors.default;
+            colors.border = newColors.border;
 
-            // 更新下拉框选中值
             document.getElementById('centerColor').value = colors.center;
             document.getElementById('corner1Color').value = colors.corner1;
             document.getElementById('corner2Color').value = colors.corner2;
             document.getElementById('corner3Color').value = colors.corner3;
             document.getElementById('corner4Color').value = colors.corner4;
             document.getElementById('defaultColor').value = colors.default;
+            document.getElementById('borderColor').value = colors.border;
 
             drawGrid();
         }
@@ -920,6 +587,7 @@
             document.getElementById('corner3Color').disabled = !enabled;
             document.getElementById('corner4Color').disabled = !enabled;
             document.getElementById('defaultColor').disabled = !enabled;
+            document.getElementById('borderColor').disabled = !enabled;
             document.getElementById('randomizeBtn').disabled = !enabled;
             document.getElementById('downloadBtn').disabled = !enabled;
             document.getElementById('mintBtn').disabled = !enabled;
@@ -930,7 +598,6 @@
                 document.getElementById('transactionStatus').innerText = '请先连接钱包。';
                 return;
             }
-            // 检查5个格子颜色是否与默认颜色相同
             if ([colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4].includes(colors.default)) {
                 document.getElementById('transactionStatus').innerText = '5个格子的颜色不能与默认颜色相同，请调整！';
                 return;
@@ -946,7 +613,7 @@
                     colors.corner3,
                     colors.corner4,
                     colors.default,
-                    'Corner-Centered 5x5 Grid'
+                    colors.border
                 ];
                 const attrHash = web3.utils.keccak256(web3.eth.abi.encodeParameter('string[]', attributes));
                 const isUsed = await contract.methods.usedAttributeCombinations(attrHash).call();
@@ -958,7 +625,7 @@
                 const imageData = canvas.toDataURL('image/png').split(',')[1];
                 const metadata = {
                     name: `OKB Map #${parseInt(totalSupply) + 1}`,
-                    description: 'A unique 5x5 grid NFT with customizable corners and center on OKB Map',
+                    description: 'A unique 5x5 grid NFT with customizable corners, center, and border on OKB Map',
                     image: `data:image/png;base64,${imageData}`,
                     attributes: [
                         { trait_type: 'Center Color (3,3)', value: colors.center },
@@ -967,7 +634,7 @@
                         { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
                         { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
                         { trait_type: 'Default Color', value: colors.default },
-                        { trait_type: 'Grid Type', value: 'Corner-Centered 5x5 Grid' }
+                        { trait_type: 'Border Color', value: colors.border }
                     ]
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
@@ -1048,7 +715,6 @@
             }
         }
 
-        // Event Listeners
         document.getElementById('connectWallet').addEventListener('click', connectWallet);
         document.getElementById('centerColor').addEventListener('change', () => {
             colors.center = document.getElementById('centerColor').value;
@@ -1080,6 +746,10 @@
             checkColorConflict();
             drawGrid();
         });
+        document.getElementById('borderColor').addEventListener('change', () => {
+            colors.border = document.getElementById('borderColor').value;
+            drawGrid();
+        });
 
         function checkColorConflict() {
             const customColors = [colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4];
@@ -1092,7 +762,6 @@
             }
         }
 
-        // Initialize
         window.onload = () => {
             drawGrid();
             if (!window.ethereum) {
@@ -1101,10 +770,7 @@
             checkColorConflict();
         };
 
-        window.ethereum?.on('chainChanged', () => {
-            window.location.reload();
-        });
-
+        window.ethereum?.on('chainChanged', () => window.location.reload());
         window.ethereum?.on('accountsChanged', (newAccounts) => {
             accounts = newAccounts;
             if (newAccounts.length === 0) {
