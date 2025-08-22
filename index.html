@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body { background: #000000; font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #ffffff; }
@@ -486,12 +486,13 @@
                     else if (row === 4 && col === 4) fillColor = colors.corner4;
                     ctx.fillStyle = fillColor;
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
-                    if (colors.border !== 'none') {
-                        ctx.strokeStyle = colors.border;
-                        ctx.lineWidth = 1; // 非常细的边框
-                        ctx.strokeRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
-                    }
                 }
+            }
+            // 绘制外围大边框
+            if (colors.border !== 'none') {
+                ctx.strokeStyle = colors.border;
+                ctx.lineWidth = 1; // 非常细的边框
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
             }
         }
 
@@ -605,22 +606,7 @@
             const mintButton = document.getElementById('mintBtn');
             mintButton.disabled = true;
             try {
-                document.getElementById('transactionStatus').innerText = '正在检查属性唯一性...';
-                const attributes = [
-                    colors.center,
-                    colors.corner1,
-                    colors.corner2,
-                    colors.corner3,
-                    colors.corner4,
-                    colors.default,
-                    colors.border
-                ];
-                const attrHash = web3.utils.keccak256(web3.eth.abi.encodeParameter('string[]', attributes));
-                const isUsed = await contract.methods.usedAttributeCombinations(attrHash).call();
-                if (isUsed) {
-                    document.getElementById('transactionStatus').innerText = '此颜色组合已被铸造，请选择其他组合。';
-                    return;
-                }
+                document.getElementById('transactionStatus').innerText = '正在铸造NFT...';
                 const totalSupply = await contract.methods.totalSupply().call();
                 const imageData = canvas.toDataURL('image/png').split(',')[1];
                 const metadata = {
@@ -638,7 +624,21 @@
                     ]
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
-                document.getElementById('transactionStatus').innerText = '正在铸造NFT...';
+                const attributes = [
+                    colors.center,
+                    colors.corner1,
+                    colors.corner2,
+                    colors.corner3,
+                    colors.corner4,
+                    colors.default,
+                    colors.border
+                ];
+                // 检查余额
+                const balance = await web3.eth.getBalance(accounts[0]);
+                if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
+                    document.getElementById('transactionStatus').innerText = '钱包余额不足，请充值！';
+                    return;
+                }
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
                     value: MINT_PRICE
@@ -647,6 +647,7 @@
                 fetchOwnedNFTs();
             } catch (error) {
                 document.getElementById('transactionStatus').innerText = '铸造失败: ' + error.message;
+                console.error('Minting Error:', error);
             } finally {
                 mintButton.disabled = false;
             }
