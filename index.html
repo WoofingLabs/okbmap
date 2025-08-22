@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map Grid Customizer</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body {
@@ -31,6 +31,7 @@
         label {
             display: block;
             margin-bottom: 5px;
+            font-size: 14px;
         }
         input[type="color"] {
             width: 100%;
@@ -38,6 +39,15 @@
             padding: 0;
             border: 1px solid #444444;
             background: #2d2d2d;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #2d2d2d;
+            border: 1px solid #444444;
+            color: #ffffff;
             border-radius: 4px;
         }
         button {
@@ -53,18 +63,20 @@
             background: #444444;
         }
         .controls {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 10px;
             margin-bottom: 20px;
         }
         .control-group {
-            flex: 1;
-            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
         .status {
             margin-top: 10px;
             font-size: 14px;
+            text-align: center;
         }
         .disabled {
             opacity: 0.5;
@@ -73,11 +85,17 @@
         #gridCanvas {
             width: 100%;
             max-width: 300px;
-            height: auto;
+            height: 300px;
             display: block;
             margin: 0 auto 20px;
             border: 1px solid #444444;
             border-radius: 4px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         .nft-viewer {
             margin-top: 20px;
@@ -85,6 +103,7 @@
         .nft-viewer h2 {
             font-size: 18px;
             text-align: center;
+            margin-bottom: 10px;
         }
         #nftList {
             display: grid;
@@ -107,58 +126,52 @@
             font-size: 12px;
             margin: 5px 0;
         }
-        .nft-card input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            background: #2d2d2d;
-            border: 1px solid #444444;
-            color: #ffffff;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>OKB Map Grid Customizer</h1>
+        <h1>OKB Map 网格定制器</h1>
         <div class="section">
-            <button id="connectWallet" class="button">Connect Wallet</button>
-            <div id="walletStatus" class="status">Not connected</div>
+            <button id="connectWallet" class="button">连接钱包</button>
+            <div id="walletStatus" class="status">未连接</div>
         </div>
         <div class="section">
             <canvas id="gridCanvas" width="300" height="300"></canvas>
             <div class="controls">
                 <div class="control-group">
-                    <label for="centerColor">Center Color</label>
+                    <label for="centerColor">中心颜色</label>
                     <input type="color" id="centerColor" value="#ff0000" disabled>
                 </div>
                 <div class="control-group">
-                    <label for="corner1Color">Corner (1,1) Color</label>
-                    <input type="color" id="corner1Color" value="#00ff00" disabled>
+                    <label for="adjacent1Color">上方颜色 (2,3)</label>
+                    <input type="color" id="adjacent1Color" value="#00ff00" disabled>
                 </div>
                 <div class="control-group">
-                    <label for="corner2Color">Corner (1,5) Color</label>
-                    <input type="color" id="corner2Color" value="#0000ff" disabled>
+                    <label for="adjacent2Color">左侧颜色 (3,2)</label>
+                    <input type="color" id="adjacent2Color" value="#0000ff" disabled>
                 </div>
                 <div class="control-group">
-                    <label for="corner3Color">Corner (5,1) Color</label>
-                    <input type="color" id="corner3Color" value="#ffff00" disabled>
+                    <label for="adjacent3Color">右侧颜色 (3,4)</label>
+                    <input type="color" id="adjacent3Color" value="#ffff00" disabled>
                 </div>
                 <div class="control-group">
-                    <label for="corner4Color">Corner (5,5) Color</label>
-                    <input type="color" id="corner4Color" value="#ff00ff" disabled>
+                    <label for="adjacent4Color">下方颜色 (4,3)</label>
+                    <input type="color" id="adjacent4Color" value="#ff00ff" disabled>
                 </div>
                 <div class="control-group">
-                    <label for="defaultColor">Default Color</label>
+                    <label for="defaultColor">默认颜色</label>
                     <input type="color" id="defaultColor" value="#888888" disabled>
                 </div>
             </div>
-            <button id="randomizeBtn" onclick="randomizeColors()" disabled>Randomize Colors</button>
-            <button id="mintBtn" onclick="mintNFT()" disabled>Mint NFT (0.1 ETH)</button>
+            <div class="action-buttons">
+                <button id="randomizeBtn" onclick="randomizeColors()" disabled>随机颜色</button>
+                <button id="downloadBtn" onclick="downloadGrid()" disabled>下载图片</button>
+                <button id="mintBtn" onclick="mintNFT()" disabled>铸造NFT (0.1 OKB)</button>
+            </div>
             <div id="transactionStatus" class="status"></div>
         </div>
         <div class="nft-viewer">
-            <h2>Your OKB Map NFTs</h2>
+            <h2>你的 OKB Map NFT</h2>
             <div id="nftList"></div>
         </div>
     </div>
@@ -166,7 +179,7 @@
     <script>
         let web3, accounts, contract;
         const CONTRACT_ADDRESS = '0x2C3568EA818D06929907de160EB6EDFa002d18a0';
-        const MINT_PRICE = '100000000000000000'; // 0.1 ETH
+        const MINT_PRICE = '100000000000000000'; // 0.1 OKB
         const xLayer = { chainId: 196, rpcUrl: 'https://rpc.xlayer.tech' };
 
         const CONTRACT_ABI = [
@@ -528,11 +541,11 @@
         const cellSize = canvas.width / gridSize;
 
         const colors = {
-            center: '#ff0000',
-            corner1: '#00ff00',
-            corner2: '#0000ff',
-            corner3: '#ffff00',
-            corner4: '#ff00ff',
+            center: '#ff0000', // (3,3)
+            adjacent1: '#00ff00', // (2,3)
+            adjacent2: '#0000ff', // (3,2)
+            adjacent3: '#ffff00', // (3,4)
+            adjacent4: '#ff00ff', // (4,3)
             default: '#888888'
         };
 
@@ -542,14 +555,12 @@
                 for (let col = 1; col <= gridSize; col++) {
                     let color = colors.default;
                     if (row === 3 && col === 3) color = colors.center;
-                    else if (row === 1 && col === 1) color = colors.corner1;
-                    else if (row === 1 && col === 5) color = colors.corner2;
-                    else if (row === 5 && col === 1) color = colors.corner3;
-                    else if (row === 5 && col === 5) color = colors.corner4;
+                    else if (row === 2 && col === 3) color = colors.adjacent1;
+                    else if (row === 3 && col === 2) color = colors.adjacent2;
+                    else if (row === 3 && col === 4) color = colors.adjacent3;
+                    else if (row === 4 && col === 3) color = colors.adjacent4;
                     ctx.fillStyle = color;
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.strokeRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
                 }
             }
         }
@@ -557,23 +568,30 @@
         function randomizeColors() {
             const randomColor = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
             colors.center = randomColor();
-            colors.corner1 = randomColor();
-            colors.corner2 = randomColor();
-            colors.corner3 = randomColor();
-            colors.corner4 = randomColor();
+            colors.adjacent1 = randomColor();
+            colors.adjacent2 = randomColor();
+            colors.adjacent3 = randomColor();
+            colors.adjacent4 = randomColor();
             colors.default = randomColor();
             document.getElementById('centerColor').value = colors.center;
-            document.getElementById('corner1Color').value = colors.corner1;
-            document.getElementById('corner2Color').value = colors.corner2;
-            document.getElementById('corner3Color').value = colors.corner3;
-            document.getElementById('corner4Color').value = colors.corner4;
+            document.getElementById('adjacent1Color').value = colors.adjacent1;
+            document.getElementById('adjacent2Color').value = colors.adjacent2;
+            document.getElementById('adjacent3Color').value = colors.adjacent3;
+            document.getElementById('adjacent4Color').value = colors.adjacent4;
             document.getElementById('defaultColor').value = colors.default;
             drawGrid();
         }
 
+        function downloadGrid() {
+            const link = document.createElement('a');
+            link.download = 'okb-map-grid.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
         async function connectWallet() {
             if (!window.ethereum) {
-                document.getElementById('transactionStatus').innerText = 'Please install MetaMask.';
+                document.getElementById('transactionStatus').innerText = '请安装 MetaMask。';
                 return;
             }
             try {
@@ -585,75 +603,76 @@
                 }
                 accounts = await web3.eth.getAccounts();
                 contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
-                document.getElementById('walletStatus').innerText = `Connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
+                document.getElementById('walletStatus').innerText = `已连接: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
                 enableInputs(true);
                 fetchOwnedNFTs();
             } catch (error) {
-                document.getElementById('walletStatus').innerText = 'Failed to connect: ' + error.message;
+                document.getElementById('walletStatus').innerText = '连接失败: ' + error.message;
             }
         }
 
         function enableInputs(enabled) {
             document.getElementById('centerColor').disabled = !enabled;
-            document.getElementById('corner1Color').disabled = !enabled;
-            document.getElementById('corner2Color').disabled = !enabled;
-            document.getElementById('corner3Color').disabled = !enabled;
-            document.getElementById('corner4Color').disabled = !enabled;
+            document.getElementById('adjacent1Color').disabled = !enabled;
+            document.getElementById('adjacent2Color').disabled = !enabled;
+            document.getElementById('adjacent3Color').disabled = !enabled;
+            document.getElementById('adjacent4Color').disabled = !enabled;
             document.getElementById('defaultColor').disabled = !enabled;
             document.getElementById('randomizeBtn').disabled = !enabled;
+            document.getElementById('downloadBtn').disabled = !enabled;
             document.getElementById('mintBtn').disabled = !enabled;
         }
 
         async function mintNFT() {
             if (!web3 || !contract || !accounts) {
-                document.getElementById('transactionStatus').innerText = 'Please connect wallet first.';
+                document.getElementById('transactionStatus').innerText = '请先连接钱包。';
                 return;
             }
             const mintButton = document.getElementById('mintBtn');
             mintButton.disabled = true;
             try {
-                document.getElementById('transactionStatus').innerText = 'Checking attribute uniqueness...';
+                document.getElementById('transactionStatus').innerText = '正在检查属性唯一性...';
                 const attributes = [
                     colors.center,
-                    colors.corner1,
-                    colors.corner2,
-                    colors.corner3,
-                    colors.corner4,
+                    colors.adjacent1,
+                    colors.adjacent2,
+                    colors.adjacent3,
+                    colors.adjacent4,
                     colors.default,
-                    '5x5 Grid'
+                    'X-Shaped 5x5 Grid'
                 ];
                 const attrHash = web3.utils.keccak256(web3.eth.abi.encodeParameter('string[]', attributes));
                 const isUsed = await contract.methods.usedAttributeCombinations(attrHash).call();
                 if (isUsed) {
-                    document.getElementById('transactionStatus').innerText = 'This color combination has already been minted.';
+                    document.getElementById('transactionStatus').innerText = '此颜色组合已被铸造，请选择其他组合。';
                     return;
                 }
                 const totalSupply = await contract.methods.totalSupply().call();
                 const imageData = canvas.toDataURL('image/png').split(',')[1];
                 const metadata = {
                     name: `OKB Map #${parseInt(totalSupply) + 1}`,
-                    description: 'A unique 5x5 grid NFT on OKB Map',
+                    description: 'A unique 5x5 grid NFT with an X-shaped pattern on OKB Map',
                     image: `data:image/png;base64,${imageData}`,
                     attributes: [
                         { trait_type: 'Center Color', value: colors.center },
-                        { trait_type: 'Corner (1,1) Color', value: colors.corner1 },
-                        { trait_type: 'Corner (1,5) Color', value: colors.corner2 },
-                        { trait_type: 'Corner (5,1) Color', value: colors.corner3 },
-                        { trait_type: 'Corner (5,5) Color', value: colors.corner4 },
+                        { trait_type: 'Top Adjacent Color (2,3)', value: colors.adjacent1 },
+                        { trait_type: 'Left Adjacent Color (3,2)', value: colors.adjacent2 },
+                        { trait_type: 'Right Adjacent Color (3,4)', value: colors.adjacent3 },
+                        { trait_type: 'Bottom Adjacent Color (4,3)', value: colors.adjacent4 },
                         { trait_type: 'Default Color', value: colors.default },
-                        { trait_type: 'Grid Type', value: '5x5 Grid' }
+                        { trait_type: 'Grid Type', value: 'X-Shaped 5x5 Grid' }
                     ]
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
-                document.getElementById('transactionStatus').innerText = 'Minting NFT...';
+                document.getElementById('transactionStatus').innerText = '正在铸造NFT...';
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
                     value: MINT_PRICE
                 });
-                document.getElementById('transactionStatus').innerText = 'NFT minted successfully!';
+                document.getElementById('transactionStatus').innerText = 'NFT铸造成功！';
                 fetchOwnedNFTs();
             } catch (error) {
-                document.getElementById('transactionStatus').innerText = 'Minting failed: ' + error.message;
+                document.getElementById('transactionStatus').innerText = '铸造失败: ' + error.message;
             } finally {
                 mintButton.disabled = false;
             }
@@ -661,15 +680,15 @@
 
         async function fetchOwnedNFTs() {
             if (!web3 || !contract || !accounts) {
-                document.getElementById('nftList').innerHTML = '<p>Please connect your wallet first.</p>';
+                document.getElementById('nftList').innerHTML = '<p>请先连接钱包。</p>';
                 return;
             }
             const nftList = document.getElementById('nftList');
-            nftList.innerHTML = '<p>Loading your NFTs...</p>';
+            nftList.innerHTML = '<p>正在加载你的NFT...</p>';
             try {
                 const tokenIds = await contract.methods.walletOfOwner(accounts[0]).call();
                 if (tokenIds.length === 0) {
-                    nftList.innerHTML = '<p>You don’t own any OKB Map NFTs yet.</p>';
+                    nftList.innerHTML = '<p>你尚未拥有任何 OKB Map NFT。</p>';
                     return;
                 }
                 nftList.innerHTML = '';
@@ -678,7 +697,7 @@
                     await displayNFT(tokenId, tokenURI);
                 }
             } catch (error) {
-                nftList.innerHTML = '<p>Error loading NFTs: ' + error.message + '</p>';
+                nftList.innerHTML = '<p>加载NFT失败: ' + error.message + '</p>';
             }
         }
 
@@ -696,29 +715,29 @@
             nftDiv.innerHTML = `
                 <img src="${metadata.image}" alt="${metadata.name}">
                 <p>${metadata.name} (ID: ${tokenId})</p>
-                <input type="text" id="transferAddress${tokenId}" placeholder="Recipient Address">
-                <button class="button" onclick="transferNFT(${tokenId})">Transfer</button>
+                <input type="text" id="transferAddress${tokenId}" placeholder="接收地址">
+                <button class="button" onclick="transferNFT(${tokenId})">转移</button>
             `;
             nftList.appendChild(nftDiv);
         }
 
         async function transferNFT(tokenId) {
             if (!web3 || !contract || !accounts) {
-                document.getElementById('transactionStatus').innerText = 'Please connect wallet first.';
+                document.getElementById('transactionStatus').innerText = '请先连接钱包。';
                 return;
             }
             const transferAddress = document.getElementById(`transferAddress${tokenId}`).value;
             if (!web3.utils.isAddress(transferAddress)) {
-                document.getElementById('transactionStatus').innerText = 'Invalid Ethereum address!';
+                document.getElementById('transactionStatus').innerText = '无效的以太坊地址！';
                 return;
             }
             try {
-                document.getElementById('transactionStatus').innerText = 'Transferring NFT...';
+                document.getElementById('transactionStatus').innerText = '正在转移NFT...';
                 await contract.methods.safeTransferFrom(accounts[0], transferAddress, tokenId).send({ from: accounts[0] });
-                document.getElementById('transactionStatus').innerText = 'NFT transferred successfully!';
+                document.getElementById('transactionStatus').innerText = 'NFT转移成功！';
                 fetchOwnedNFTs();
             } catch (error) {
-                document.getElementById('transactionStatus').innerText = 'Transfer failed: ' + error.message;
+                document.getElementById('transactionStatus').innerText = '转移失败: ' + error.message;
             }
         }
 
@@ -728,20 +747,20 @@
             colors.center = document.getElementById('centerColor').value;
             drawGrid();
         });
-        document.getElementById('corner1Color').addEventListener('input', () => {
-            colors.corner1 = document.getElementById('corner1Color').value;
+        document.getElementById('adjacent1Color').addEventListener('input', () => {
+            colors.adjacent1 = document.getElementById('adjacent1Color').value;
             drawGrid();
         });
-        document.getElementById('corner2Color').addEventListener('input', () => {
-            colors.corner2 = document.getElementById('corner2Color').value;
+        document.getElementById('adjacent2Color').addEventListener('input', () => {
+            colors.adjacent2 = document.getElementById('adjacent2Color').value;
             drawGrid();
         });
-        document.getElementById('corner3Color').addEventListener('input', () => {
-            colors.corner3 = document.getElementById('corner3Color').value;
+        document.getElementById('adjacent3Color').addEventListener('input', () => {
+            colors.adjacent3 = document.getElementById('adjacent3Color').value;
             drawGrid();
         });
-        document.getElementById('corner4Color').addEventListener('input', () => {
-            colors.corner4 = document.getElementById('corner4Color').value;
+        document.getElementById('adjacent4Color').addEventListener('input', () => {
+            colors.adjacent4 = document.getElementById('adjacent4Color').value;
             drawGrid();
         });
         document.getElementById('defaultColor').addEventListener('input', () => {
@@ -753,7 +772,7 @@
         window.onload = () => {
             drawGrid();
             if (!window.ethereum) {
-                document.getElementById('transactionStatus').innerText = 'No wallet detected. Please install MetaMask.';
+                document.getElementById('transactionStatus').innerText = '未检测到钱包，请安装 MetaMask。';
             }
         };
 
@@ -764,7 +783,7 @@
         window.ethereum?.on('accountsChanged', (newAccounts) => {
             accounts = newAccounts;
             if (newAccounts.length === 0) {
-                document.getElementById('walletStatus').innerText = 'Not connected';
+                document.getElementById('walletStatus').innerText = '未连接';
                 enableInputs(false);
             } else {
                 connectWallet();
