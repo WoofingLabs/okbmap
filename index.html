@@ -372,7 +372,7 @@
     <script>
         let web3, accounts, contract;
         const CONTRACT_ADDRESS = '0x2C3568EA818D06929907de160EB6EDFa002d18a0';
-        const MINT_PRICE = '100000000000000000'; // 0.1 ether
+        const MINT_PRICE = '100000000000000000';
 
         const CONTRACT_ABI = [
             {
@@ -526,13 +526,13 @@
         const cellSize = canvas.width / gridSize;
 
         const colors = {
-            center: '#FF0000', // (3,3)
-            corner1: '#00FF00', // (2,2)
-            corner2: '#0000FF', // (2,4)
-            corner3: '#FFFF00', // (4,2)
-            corner4: '#FFFFFF', // (4,4)
+            center: '#FF0000',
+            corner1: '#00FF00',
+            corner2: '#0000FF',
+            corner3: '#FFFF00',
+            corner4: '#FFFFFF',
             default: '#000000',
-            border: '#FF0000' // 默认红色，移除 "none"
+            border: '#FF0000'
         };
 
         const colorOptions = [
@@ -544,6 +544,17 @@
             '#CD5C5C', '#DC143C', '#B22222', '#F4A460', '#D2691E',
             '#8B4513', '#A52A2A', '#DEB887', '#D2B48C', '#F0E68C',
             '#98FB98', '#AFEEEE', '#87CEEB', '#E6E6FA', '#FFB6C1'
+        ];
+
+        const colorNames = [
+            'Red', 'Green', 'Blue', 'Yellow', 'Magenta',
+            'Cyan', 'White', 'Black', 'OrangeRed', 'Orange',
+            'Gold', 'YellowGreen', 'Olive', 'LimeGreen', 'ForestGreen',
+            'RoyalBlue', 'DodgerBlue', 'DeepSkyBlue', 'SlateBlue', 'BlueViolet',
+            'MediumPurple', 'Plum', 'HotPink', 'DeepPink', 'MediumVioletRed',
+            'IndianRed', 'Crimson', 'FireBrick', 'SandyBrown', 'Chocolate',
+            'SaddleBrown', 'Brown', 'BurlyWood', 'Tan', 'Khaki',
+            'PaleGreen', 'PaleTurquoise', 'SkyBlue', 'Lavender', 'LightPink'
         ];
 
         function drawGrid() {
@@ -684,13 +695,11 @@
             const mintButton = document.getElementById('mintBtn');
             mintButton.disabled = true;
             try {
-                // 检查余额
                 const balance = await web3.eth.getBalance(accounts[0]);
                 if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
                     showStatus('钱包余额不足，请充值！');
                     return;
                 }
-
                 showStatus('正在铸造NFT...');
                 const totalSupply = await contract.methods.totalSupply().call();
                 const imageData = canvas.toDataURL('image/png').split(',')[1];
@@ -709,21 +718,31 @@
                     ]
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+                const colorToName = {
+                    '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
+                    '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
+                    '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
+                    '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
+                    '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
+                    '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
+                    '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
+                    '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
+                    '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
+                    '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
+                };
                 const attributes = [
-                    colors.center,
-                    colors.corner1,
-                    colors.corner2,
-                    colors.corner3,
-                    colors.corner4,
-                    colors.default,
-                    colors.border
+                    `${colorToName[colors.center]}1`,
+                    `${colorToName[colors.corner1]}2`,
+                    `${colorToName[colors.corner2]}3`,
+                    `${colorToName[colors.corner3]}4`,
+                    `${colorToName[colors.corner4]}5`,
+                    `${colorToName[colors.default]}6`,
+                    `${colorToName[colors.border]}7`
                 ];
 
-                // 模仿 SIYC 的 Gas 设置，允许 MetaMask 自动估算
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
-                    value: MINT_PRICE,
-                    gas: 300000 // 默认值，可由 MetaMask 调整
+                    value: MINT_PRICE
                 });
                 showStatus('NFT铸造成功！');
                 fetchOwnedNFTs();
