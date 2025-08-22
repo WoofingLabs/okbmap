@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body { background: #000000; font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #ffffff; }
@@ -313,7 +313,6 @@
                 <div class="control-group">
                     <label for="borderColor">边框颜色</label>
                     <select id="borderColor" disabled>
-                        <option value="none">无</option>
                         <option value="#FF0000">红色</option>
                         <option value="#00FF00">绿色</option>
                         <option value="#0000FF">蓝色</option>
@@ -533,7 +532,7 @@
             corner3: '#FFFF00', // (4,2)
             corner4: '#FFFFFF', // (4,4)
             default: '#000000',
-            border: 'none' // 默认无边框
+            border: '#FF0000' // 默认红色，移除 "none"
         };
 
         const colorOptions = [
@@ -561,7 +560,7 @@
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
                 }
             }
-            if (colors.border !== 'none') {
+            if (colors.border) {
                 ctx.strokeStyle = colors.border;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
@@ -602,7 +601,7 @@
                 newColors.corner4 = colorOptions.find(color => !usedColors.has(color) && color !== newColors.default) || '#808080';
             }
 
-            newColors.border = ['none'].concat(colorOptions)[Math.floor(Math.random() * (colorOptions.length + 1))];
+            newColors.border = colorOptions[Math.floor(Math.random() * colorOptions.length)];
 
             colors.center = newColors.center;
             colors.corner1 = newColors.corner1;
@@ -720,11 +719,11 @@
                     colors.border
                 ];
 
-                // 模仿 SIYC 的 Gas 设置
+                // 模仿 SIYC 的 Gas 设置，允许 MetaMask 自动估算
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
                     value: MINT_PRICE,
-                    gas: 300000 // 默认 Gas Limit，需根据需求调整
+                    gas: 300000 // 默认值，可由 MetaMask 调整
                 });
                 showStatus('NFT铸造成功！');
                 fetchOwnedNFTs();
@@ -733,6 +732,8 @@
                 console.error('Minting Error:', error);
                 if (error.message.includes('revert')) {
                     showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
+                } else if (error.message.includes('out of gas')) {
+                    showStatus('铸造失败: Gas 不足，请增加 Gas Limit。');
                 }
             } finally {
                 mintButton.disabled = false;
