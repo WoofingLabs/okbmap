@@ -687,77 +687,82 @@
             }
         }
 
-        async function mintNFT() {
-            if (!web3 || !contract || !accounts) {
-                showStatus('请先连接钱包。');
-                return;
-            }
-            const mintButton = document.getElementById('mintBtn');
-            mintButton.disabled = true;
-            try {
-                const balance = await web3.eth.getBalance(accounts[0]);
-                if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
-                    showStatus('钱包余额不足，请充值！');
-                    return;
-                }
-                showStatus('正在铸造NFT...');
-                const totalSupply = await contract.methods.totalSupply().call();
-                const imageData = canvas.toDataURL('image/png').split(',')[1];
-                const metadata = {
-                    name: `OKB Map #${parseInt(totalSupply) + 1}`,
-                    description: 'A unique 5x5 grid NFT with customizable corners, center, and border on OKB Map',
-                    image: `data:image/png;base64,${imageData}`,
-                    attributes: [
-                        { trait_type: 'Center Color (3,3)', value: colors.center },
-                        { trait_type: 'Top-Left Corner (2,2)', value: colors.corner1 },
-                        { trait_type: 'Top-Right Corner (2,4)', value: colors.corner2 },
-                        { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
-                        { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
-                        { trait_type: 'Default Color', value: colors.default },
-                        { trait_type: 'Border Color', value: colors.border }
-                    ]
-                };
-                const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
-                const colorToName = {
-                    '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
-                    '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
-                    '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
-                    '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
-                    '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
-                    '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
-                    '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
-                    '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
-                    '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
-                    '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
-                };
-                const attributes = [
-                    `${colorToName[colors.center]}1`,
-                    `${colorToName[colors.corner1]}2`,
-                    `${colorToName[colors.corner2]}3`,
-                    `${colorToName[colors.corner3]}4`,
-                    `${colorToName[colors.corner4]}5`,
-                    `${colorToName[colors.default]}6`,
-                    `${colorToName[colors.border]}7`
-                ];
-
-                await contract.methods.mintNFT(tokenURI, attributes).send({
-                    from: accounts[0],
-                    value: MINT_PRICE
-                });
-                showStatus('NFT铸造成功！');
-                fetchOwnedNFTs();
-            } catch (error) {
-                showStatus('铸造失败: ' + error.message);
-                console.error('Minting Error:', error);
-                if (error.message.includes('revert')) {
-                    showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
-                } else if (error.message.includes('out of gas')) {
-                    showStatus('铸造失败: Gas 不足，请增加 Gas Limit。');
-                }
-            } finally {
-                mintButton.disabled = false;
-            }
+async function mintNFT() {
+    if (!web3 || !contract || !accounts) {
+        showStatus('请先连接钱包。');
+        return;
+    }
+    const mintButton = document.getElementById('mintBtn');
+    mintButton.disabled = true;
+    try {
+        const balance = await web3.eth.getBalance(accounts[0]);
+        if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
+            showStatus('钱包余额不足，请充值！');
+            return;
         }
+        showStatus('正在铸造NFT...');
+        const totalSupply = await contract.methods.totalSupply().call();
+        const imageData = canvas.toDataURL('image/png').split(',')[1];
+        const metadata = {
+            name: `OKB Map #${parseInt(totalSupply) + 1}`,
+            description: 'A unique 5x5 grid NFT with customizable corners, center, and border on OKB Map',
+            image: `data:image/png;base64,${imageData}`,
+            attributes: [
+                { trait_type: 'Center Color (3,3)', value: colors.center },
+                { trait_type: 'Top-Left Corner (2,2)', value: colors.corner1 },
+                { trait_type: 'Top-Right Corner (2,4)', value: colors.corner2 },
+                { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
+                { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
+                { trait_type: 'Default Color', value: colors.default },
+                { trait_type: 'Border Color', value: colors.border }
+            ]
+        };
+        const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+        const colorToName = {
+            '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
+            '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
+            '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
+            '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
+            '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
+            '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
+            '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
+            '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
+            '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
+            '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
+        };
+        const attributes = [
+            `${colorToName[colors.center]}1`,
+            `${colorToName[colors.corner1]}2`,
+            `${colorToName[colors.corner2]}3`,
+            `${colorToName[colors.corner3]}4`,
+            `${colorToName[colors.corner4]}5`,
+            `${colorToName[colors.default]}6`,
+            `${colorToName[colors.border]}7`
+        ];
+        const uniqueAttributes = new Set(attributes);
+        if (uniqueAttributes.size < attributes.length) {
+            showStatus('铸造失败: attributes 中存在重复值，请调整颜色！');
+            return;
+        }
+
+        await contract.methods.mintNFT(tokenURI, attributes).send({
+            from: accounts[0],
+            value: MINT_PRICE
+        });
+        showStatus('NFT铸造成功！');
+        fetchOwnedNFTs();
+    } catch (error) {
+        showStatus('铸造失败: ' + error.message);
+        console.error('Minting Error:', error);
+        if (error.message.includes('revert')) {
+            showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
+        } else if (error.message.includes('out of gas')) {
+            showStatus('铸造失败: Gas 不足，请增加 Gas Limit。');
+        }
+    } finally {
+        mintButton.disabled = false;
+    }
+}
 
         async function fetchOwnedNFTs() {
             if (!web3 || !contract || !accounts) {
