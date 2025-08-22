@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OKB Map Preview Tool</title>
+    <link rel="icon" type="image/png" href="https://woofingjace.com/images/jace.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            font-family: 'Montserrat', Arial, sans-serif; 
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d); 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh; 
+            color: #fff; 
+        }
+        #nftCanvas { 
+            border-radius: 15px; 
+            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.3); 
+            background-color: #fff; 
+            width: 100%; 
+            max-width: 512px; 
+            height: auto; 
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 20px; 
+        }
+        h1 { 
+            font-size: 48px; 
+            color: #ff8c00; 
+            text-shadow: 0 0 10px rgba(255, 140, 0, 0.5); 
+        }
+        .wallet-info {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .controls { 
+            margin: 20px 0; 
+            display: flex; 
+            flex-wrap: nowrap; 
+            gap: 10px; 
+            width: 100%; 
+            max-width: 1200px; 
+            overflow-x: auto; 
+        }
+        .control-group { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-width: 140px; 
+        }
+        label { 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            font-size: 14px; 
+            color: #ff8c00; 
+        }
+        .layer-value { 
+            margin-bottom: 5px; 
+            font-size: 12px; 
+            text-align: center; 
+            color: #fff; 
+            max-width: 100%; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        .cycle-buttons { 
+            display: flex; 
+            gap: 5px; 
+        }
+        .cycle-btn { 
+            padding: 5px 10px; 
+            font-size: 12px; 
+            background: linear-gradient(45deg, #ff8c00, #e07b00); 
+            color: #1a1a1a; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+        }
+        .cycle-btn:hover { 
+            transform: scale(1.05); 
+        }
+        select, input[type="number"] { 
+            margin-top: 5px; 
+            padding: 5px; 
+            font-size: 12px; 
+            width: 100%; 
+            border-radius: 5px; 
+            background: #333; 
+            color: #fff; 
+            border: 1px solid #ff8c00; 
+        }
+        .action-buttons { 
+            display: flex; 
+            gap: 15px; 
+            margin: 20px 0; 
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+        .action-btn { 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            background: linear-gradient(45deg, #ff8c00, #e07b00); 
+            color: #1a1a1a; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+        }
+        .action-btn:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.7); 
+        }
+        .action-btn:disabled { 
+            background: #666; 
+            cursor: not-allowed; 
+        }
+        .action-btn.loading { 
+            opacity: 0.7; 
+            pointer-events: none; 
+        }
+        .preview-details { 
+            margin-top: 30px; 
+            width: 100%; 
+            max-width: 800px; 
+            text-align: center; 
+        }
+        .preview-details h2 { 
+            font-size: 32px; 
+            color: #ff8c00; 
+        }
+        #previewInfo { 
+            font-size: 14px; 
+            color: #fff; 
+            word-wrap: break-word; 
+            background: #333; 
+            padding: 10px; 
+            border-radius: 5px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        #tokenURI { 
+            width: 100%; 
+            max-width: 700px; 
+            padding: 8px; 
+            border-radius: 5px; 
+            border: 1px solid #ff8c00; 
+            background: #333; 
+            color: #fff; 
+            font-size: 14px; 
+            margin-top: 10px; 
+        }
+        #debugInfo { 
+            font-size: 12px; 
+            color: #ff8c00; 
+            margin-top: 10px; 
+        }
+        .number-input { 
+            margin: 10px 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .number-input label { 
+            font-size: 16px; 
+            color: #ff8c00; 
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0, 0, 0, 0.8); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        .modal-content { 
+            background: #2d2d2d; 
+            padding: 20px; 
+            border-radius: 15px; 
+            text-align: center; 
+            color: #fff; 
+            max-width: 350px; 
+            border: 2px solid #ff8c00; 
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.5); 
+        }
+        .modal-content p { 
+            margin-bottom: 15px; 
+            font-size: 18px; 
+        }
+        .modal-content button { 
+            padding: 10px 20px; 
+            background: #ff8c00; 
+            color: #1a1a1a; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+        }
+        .nft-image { 
+            max-width: 100%; 
+            max-height: 300px; 
+            margin: 10px 0; 
+            border-radius: 10px; 
+            border: 2px solid #ff8c00; 
+            display: none; 
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 32px; }
+            .wallet-info { font-size: 14px; }
+            .controls { flex-wrap: wrap; gap: 8px; }
+            .control-group { min-width: 100px; }
+            label { font-size: 12px; }
+            .layer-value { font-size: 10px; }
+            .cycle-btn, select, input[type="number"] { font-size: 10px; padding: 3px 6px; }
+            .action-btn { padding: 8px 16px; font-size: 14px; }
+            .preview-details h2 { font-size: 24px; }
+            .modal-content { max-width: 90%; padding: 15px; }
+            #previewInfo, #tokenURI, #debugInfo { font-size: 12px; }
+            .number-input label { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>OKB Map Preview Tool</h1>
+        <div class="wallet-info">
+            Wallet: <span id="walletAddress">Not connected</span>
+        </div>
+        <button id="connectWalletBtn" class="action-btn">Connect Wallet</button>
+    </div>
+    <div class="number-input">
+        <label for="nftNumber">NFT Number:</label>
+        <input type="number" id="nftNumber" min="1" value="1" onchange="updateTokenURI()">
+        <button id="queryTokenURIBtn" class="action-btn" onclick="queryTokenURI()">Query TokenURI</button>
+    </div>
+    <div class="controls">
+        <div class="control-group">
+            <label>Center (3,3)</label>
+            <div id="centerValue" class="layer-value">Red</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Center', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Center', 1)">Next</button>
+            </div>
+            <select id="centerSelect" onchange="selectLayer('Center')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Top-Left (2,2)</label>
+            <div id="topLeftValue" class="layer-value">Green</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Top-Left', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Top-Left', 1)">Next</button>
+            </div>
+            <select id="topLeftSelect" onchange="selectLayer('Top-Left')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Top-Right (2,4)</label>
+            <div id="topRightValue" class="layer-value">Blue</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Top-Right', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Top-Right', 1)">Next</button>
+            </div>
+            <select id="topRightSelect" onchange="selectLayer('Top-Right')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Bottom-Left (4,2)</label>
+            <div id="bottomLeftValue" class="layer-value">Yellow</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Bottom-Left', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Bottom-Left', 1)">Next</button>
+            </div>
+            <select id="bottomLeftSelect" onchange="selectLayer('Bottom-Left')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Bottom-Right (4,4)</label>
+            <div id="bottomRightValue" class="layer-value">White</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Bottom-Right', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Bottom-Right', 1)">Next</button>
+            </div>
+            <select id="bottomRightSelect" onchange="selectLayer('Bottom-Right')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Default</label>
+            <div id="defaultValue" class="layer-value">Black</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Default', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Default', 1)">Next</button>
+            </div>
+            <select id="defaultSelect" onchange="selectLayer('Default')">
+                <option value="#FF0000">Red</option>
+                <option value="#00FF00">Green</option>
+                <option value="#0000FF">Blue</option>
+                <option value="#FFFF00">Yellow</option>
+                <option value="#FF00FF">Magenta</option>
+                <option value="#00FFFF">Cyan</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+            </select>
+        </div>
+    </div>
+    <canvas id="nftCanvas" width="512" height="512"></canvas>
+    <img id="nftImage" class="nft-image" src="" alt="NFT Image">
+    <div class="action-buttons">
+        <button id="randomizeBtn" class="action-btn" onclick="randomizeNFT()">Randomize</button>
+        <button id="downloadBtn" class="action-btn" onclick="downloadNFT()">Download PNG</button>
+        <button id="previewBtn" class="action-btn" onclick="previewTokenURI()">Preview TokenURI</button>
+        <button id="copyBtn" class="action-btn" onclick="copyTokenURI()">Copy TokenURI</button>
+        <button id="mintBtn" class="action-btn" onclick="mintNFT()">Mint NFT (0.1 OKB)</button>
+    </div>
+    <div class="preview-details">
+        <h2>TokenURI Preview</h2>
+        <div id="previewInfo">Select attributes and click "Preview TokenURI" to see the metadata.</div>
+        <input type="text" id="tokenURI" readonly placeholder="TokenURI will appear here">
+        <div id="debugInfo"></div>
+    </div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <p id="modalMessage"></p>
+            <button onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
+    <script>
+        const layers = {
+            'Center': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000'],
+            'Top-Left': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000'],
+            'Top-Right': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000'],
+            'Bottom-Left': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000'],
+            'Bottom-Right': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000'],
+            'Default': ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#000000']
+        };
+        const layerOrder = ['Center', 'Top-Left', 'Top-Right', 'Bottom-Left', 'Bottom-Right', 'Default'];
+        const currentIndices = {
+            'Center': 0,
+            'Top-Left': 1,
+            'Top-Right': 2,
+            'Bottom-Left': 3,
+            'Bottom-Right': 4,
+            'Default': 7
+        };
+
+        const canvas = document.getElementById("nftCanvas");
+        const ctx = canvas.getContext("2d");
+        let lastImageHash = "";
+        let web3, accounts, contract;
+
+        const CONTRACT_ADDRESS = '0x2C3568EA818D06929907de160EB6EDFa002d18a0';
+        const MINT_PRICE = '100000000000000000';
+        const CONTRACT_ABI = [
+            {
+                "inputs": [
+                    {"internalType": "string", "name": "uri", "type": "string"},
+                    {"internalType": "string[]", "name": "attributes", "type": "string[]"}
+                ],
+                "name": "mintNFT",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "_owner", "type": "address"}
+                ],
+                "name": "walletOfOwner",
+                "outputs": [
+                    {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+                ],
+                "name": "tokenURI",
+                "outputs": [
+                    {"internalType": "string", "name": "", "type": "string"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        const xLayerMainnet = {
+            chainId: '0xc4',
+            chainName: 'xLayer',
+            nativeCurrency: {
+                name: 'OKB',
+                symbol: 'OKB',
+                decimals: 18
+            },
+            rpcUrls: ['https://rpc.xlayer.tech'],
+            blockExplorerUrls: ['https://www.okx.com/explorer/xlayer']
+        };
+
+        function showModal(message) {
+            document.getElementById('modalMessage').innerHTML = message;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        async function connectWallet() {
+            const connectButton = document.getElementById('connectWalletBtn');
+            connectButton.classList.add('loading');
+            if (!window.ethereum) {
+                showModal('No wallet detected. Please install <a href="https://metamask.io" target="_blank">MetaMask</a>.');
+                connectButton.classList.remove('loading');
+                return;
+            }
+            try {
+                web3 = new Web3(window.ethereum);
+                accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (chainId !== '0xc4') {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xc4' }],
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [xLayerMainnet],
+                            });
+                        } else {
+                            throw switchError;
+                        }
+                    }
+                }
+                contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+                showModal('Connected to xLayer successfully!');
+                updateWalletAddress();
+            } catch (error) {
+                showModal('Connection failed: ' + error.message);
+            } finally {
+                connectButton.classList.remove('loading');
+            }
+        }
+
+        async function updateWalletAddress() {
+            if (!accounts || accounts.length === 0) {
+                document.getElementById('walletAddress').innerText = 'Not connected';
+            } else {
+                const shortAddress = `${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
+                document.getElementById('walletAddress').innerText = shortAddress;
+            }
+        }
+
+        async function queryTokenURI() {
+            if (!web3 || !contract || !accounts) {
+                showModal('Please connect your wallet first!');
+                return;
+            }
+            const tokenId = document.getElementById('nftNumber').value;
+            if (!tokenId || tokenId < 1) {
+                showModal('Please enter a valid Token ID.');
+                return;
+            }
+            const queryButton = document.getElementById('queryTokenURIBtn');
+            queryButton.classList.add('loading');
+            try {
+                const tokenURI = await contract.methods.tokenURI(tokenId).call();
+                let metadata = { attributes: [], image: '' };
+                if (tokenURI.startsWith('data:application/json;base64,')) {
+                    const base64Data = tokenURI.split(',')[1];
+                    metadata = JSON.parse(atob(base64Data));
+                }
+                document.getElementById('previewInfo').textContent = JSON.stringify(metadata, null, 2);
+                document.getElementById('tokenURI').value = tokenURI;
+                const nftImage = document.getElementById('nftImage');
+                nftImage.src = metadata.image || '';
+                nftImage.style.display = metadata.image ? 'block' : 'none';
+                metadata.attributes.forEach(attr => {
+                    const layer = attr.trait_type;
+                    const value = attr.value;
+                    if (layers[layer]) {
+                        const index = layers[layer].indexOf(value);
+                        if (index !== -1) {
+                            currentIndices[layer] = index;
+                            updateLayerValue(layer);
+                        }
+                    }
+                });
+                await updateNFT();
+            } catch (error) {
+                showModal('Failed to query TokenURI: ' + error.message);
+                document.getElementById('previewInfo').textContent = 'Error fetching TokenURI.';
+                document.getElementById('nftImage').style.display = 'none';
+            } finally {
+                queryButton.classList.remove('loading');
+            }
+        }
+
+        function updateLayerValue(layer) {
+            const value = layers[layer][currentIndices[layer]];
+            document.getElementById(`${layer.toLowerCase().replace('-', '')}Value`).textContent = value;
+            document.getElementById(`${layer.toLowerCase().replace('-', '')}Select`).value = value;
+        }
+
+        async function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const gridSize = 5;
+            const cellSize = canvas.width / gridSize;
+            for (let row = 1; row <= gridSize; row++) {
+                for (let col = 1; col <= gridSize; col++) {
+                    let fillColor = layers['Default'][currentIndices['Default']];
+                    if (row === 3 && col === 3) fillColor = layers['Center'][currentIndices['Center']];
+                    else if (row === 2 && col === 2) fillColor = layers['Top-Left'][currentIndices['Top-Left']];
+                    else if (row === 2 && col === 4) fillColor = layers['Top-Right'][currentIndices['Top-Right']];
+                    else if (row === 4 && col === 2) fillColor = layers['Bottom-Left'][currentIndices['Bottom-Left']];
+                    else if (row === 4 && col === 4) fillColor = layers['Bottom-Right'][currentIndices['Bottom-Right']];
+                    ctx.fillStyle = fillColor;
+                    ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
+                }
+            }
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL("image/png");
+        }
+
+        async function updateNFT() {
+            const imageData = await drawGrid();
+            const currentHash = getImageHash(imageData);
+            if (currentHash !== lastImageHash) {
+                lastImageHash = currentHash;
+                document.getElementById('debugInfo').textContent = `Canvas updated at ${new Date().toLocaleTimeString()}`;
+                return imageData;
+            }
+            document.getElementById('debugInfo').textContent = `Canvas unchanged at ${new Date().toLocaleTimeString()}`;
+            return imageData;
+        }
+
+        function getImageHash(imageData) {
+            let hash = 0;
+            for (let i = 0; i < imageData.length; i += 100) {
+                hash = ((hash << 5) - hash) + imageData.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return hash.toString();
+        }
+
+        async function cycleLayer(layer, direction) {
+            currentIndices[layer] = (currentIndices[layer] + direction + layers[layer].length) % layers[layer].length;
+            updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        async function selectLayer(layer) {
+            const select = document.getElementById(`${layer.toLowerCase().replace('-', '')}Select`);
+            const value = select.value;
+            currentIndices[layer] = layers[layer].indexOf(value);
+            updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        async function randomizeNFT() {
+            const usedColors = new Set();
+            currentIndices['Default'] = Math.floor(Math.random() * layers['Default'].length);
+            usedColors.add(layers['Default'][currentIndices['Default']]);
+            let availableColors = layers['Center'].filter(color => !usedColors.has(color));
+            currentIndices['Center'] = Math.floor(Math.random() * availableColors.length);
+            currentIndices['Center'] = layers['Center'].indexOf(availableColors[currentIndices['Center']]);
+            usedColors.add(layers['Center'][currentIndices['Center']]);
+            availableColors = layers['Top-Left'].filter(color => !usedColors.has(color));
+            currentIndices['Top-Left'] = Math.floor(Math.random() * availableColors.length);
+            currentIndices['Top-Left'] = layers['Top-Left'].indexOf(availableColors[currentIndices['Top-Left']]);
+            usedColors.add(layers['Top-Left'][currentIndices['Top-Left']]);
+            availableColors = layers['Top-Right'].filter(color => !usedColors.has(color));
+            currentIndices['Top-Right'] = Math.floor(Math.random() * availableColors.length);
+            currentIndices['Top-Right'] = layers['Top-Right'].indexOf(availableColors[currentIndices['Top-Right']]);
+            usedColors.add(layers['Top-Right'][currentIndices['Top-Right']]);
+            availableColors = layers['Bottom-Left'].filter(color => !usedColors.has(color));
+            currentIndices['Bottom-Left'] = Math.floor(Math.random() * availableColors.length);
+            currentIndices['Bottom-Left'] = layers['Bottom-Left'].indexOf(availableColors[currentIndices['Bottom-Left']]);
+            usedColors.add(layers['Bottom-Left'][currentIndices['Bottom-Left']]);
+            availableColors = layers['Bottom-Right'].filter(color => !usedColors.has(color));
+            currentIndices['Bottom-Right'] = Math.floor(Math.random() * availableColors.length);
+            currentIndices['Bottom-Right'] = layers['Bottom-Right'].indexOf(availableColors[currentIndices['Bottom-Right']]);
+            for (const layer of layerOrder) updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        function downloadNFT() {
+            const link = document.createElement("a");
+            link.download = `OKB-Map-#${document.getElementById("nftNumber").value}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+
+        async function previewTokenURI(imageData = null) {
+            const previewInfo = document.getElementById("previewInfo");
+            const tokenURIInput = document.getElementById("tokenURI");
+            const debugInfo = document.getElementById("debugInfo");
+            try {
+                if (!imageData) {
+                    imageData = await drawGrid();
+                }
+                const imageBase64 = imageData.split(",")[1];
+                const nftNumber = document.getElementById("nftNumber").value || "1";
+                const attributes = [
+                    layers['Center'][currentIndices['Center']],
+                    layers['Top-Left'][currentIndices['Top-Left']],
+                    layers['Top-Right'][currentIndices['Top-Right']],
+                    layers['Bottom-Left'][currentIndices['Bottom-Left']],
+                    layers['Bottom-Right'][currentIndices['Bottom-Right']],
+                    layers['Default'][currentIndices['Default']],
+                    'Map'
+                ];
+                const metadata = {
+                    name: `OKB Map #${nftNumber}`,
+                    description: "A unique 5x5 grid NFT on OKB Map",
+                    image: `data:image/png;base64,${imageBase64}`,
+                    attributes: [
+                        { trait_type: 'Center (3,3)', value: attributes[0] },
+                        { trait_type: 'Top-Left (2,2)', value: attributes[1] },
+                        { trait_type: 'Top-Right (2,4)', value: attributes[2] },
+                        { trait_type: 'Bottom-Left (4,2)', value: attributes[3] },
+                        { trait_type: 'Bottom-Right (4,4)', value: attributes[4] },
+                        { trait_type: 'Default', value: attributes[5] },
+                        { trait_type: 'Map', value: attributes[6] }
+                    ]
+                };
+                const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+                previewInfo.textContent = JSON.stringify(metadata, null, 2);
+                tokenURIInput.value = tokenURI;
+                debugInfo.textContent += ` | TokenURI updated at ${new Date().toLocaleTimeString()}`;
+                const nftImage = document.getElementById('nftImage');
+                nftImage.src = metadata.image;
+                nftImage.style.display = 'block';
+            } catch (error) {
+                previewInfo.textContent = "Error generating tokenURI: " + error.message;
+                tokenURIInput.value = "";
+                debugInfo.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function updateTokenURI() {
+            const imageData = await drawGrid();
+            await previewTokenURI(imageData);
+        }
+
+        function copyTokenURI() {
+            const tokenURIInput = document.getElementById("tokenURI");
+            tokenURIInput.select();
+            try {
+                document.execCommand("copy");
+                showModal("TokenURI copied to clipboard!");
+            } catch (error) {
+                showModal("Failed to copy tokenURI: " + error.message);
+            }
+        }
+
+        async function mintNFT() {
+            if (!web3 || !contract || !accounts) {
+                showModal('Please connect your wallet first!');
+                return;
+            }
+            const mintButton = document.getElementById('mintBtn');
+            mintButton.classList.add('loading');
+            try {
+                const balance = await web3.eth.getBalance(accounts[0]);
+                if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
+                    showModal('Wallet balance insufficient, please recharge!');
+                    return;
+                }
+                const tokenURI = document.getElementById('tokenURI').value;
+                const attributes = [
+                    layers['Center'][currentIndices['Center']],
+                    layers['Top-Left'][currentIndices['Top-Left']],
+                    layers['Top-Right'][currentIndices['Top-Right']],
+                    layers['Bottom-Left'][currentIndices['Bottom-Left']],
+                    layers['Bottom-Right'][currentIndices['Bottom-Right']],
+                    layers['Default'][currentIndices['Default']],
+                    'Map'
+                ];
+                await contract.methods.mintNFT(tokenURI, attributes).send({
+                    from: accounts[0],
+                    value: MINT_PRICE
+                });
+                showModal('NFT minted successfully!');
+            } catch (error) {
+                showModal('Minting failed: ' + error.message);
+                console.error('Minting Error:', error);
+            } finally {
+                mintButton.classList.remove('loading');
+            }
+        }
+
+        window.onload = async () => {
+            if (!window.ethereum) {
+                showModal('No wallet detected. Please install <a href="https://metamask.io" target="_blank">MetaMask</a>.');
+            }
+            for (const layer of layerOrder) updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+            document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
+            window.ethereum?.on('chainChanged', () => window.location.reload());
+            window.ethereum?.on('accountsChanged', (newAccounts) => {
+                accounts = newAccounts;
+                updateWalletAddress();
+            });
+        };
+    </script>
+</body>
+</html>
