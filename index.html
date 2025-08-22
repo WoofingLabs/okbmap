@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body { background: #000000; font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #ffffff; }
@@ -720,15 +720,20 @@
                     colors.border
                 ];
 
+                // 模仿 SIYC 的 Gas 设置
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
-                    value: MINT_PRICE
+                    value: MINT_PRICE,
+                    gas: 300000 // 默认 Gas Limit，需根据需求调整
                 });
                 showStatus('NFT铸造成功！');
                 fetchOwnedNFTs();
             } catch (error) {
                 showStatus('铸造失败: ' + error.message);
                 console.error('Minting Error:', error);
+                if (error.message.includes('revert')) {
+                    showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
+                }
             } finally {
                 mintButton.disabled = false;
             }
