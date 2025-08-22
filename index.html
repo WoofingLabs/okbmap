@@ -107,7 +107,7 @@
         }
         #nftList {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
         }
         .nft-card {
@@ -577,18 +577,57 @@
         }
 
         function randomizeColors() {
-            colors.center = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            colors.corner1 = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            colors.corner2 = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            colors.corner3 = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            colors.corner4 = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-            colors.default = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+            let newColors = {};
+            const usedColors = new Set();
+
+            // 随机选择默认颜色
+            newColors.default = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+            usedColors.add(newColors.default);
+
+            // 确保5个格子的颜色与默认颜色不同
+            let availableColors = colorOptions.filter(color => !usedColors.has(color));
+            if (availableColors.length < 5) {
+                alert('可用颜色不足，请重试或调整默认颜色。');
+                return;
+            }
+
+            newColors.center = availableColors[Math.floor(Math.random() * availableColors.length)];
+            usedColors.add(newColors.center);
+            availableColors = availableColors.filter(color => !usedColors.has(color));
+
+            newColors.corner1 = availableColors[Math.floor(Math.random() * availableColors.length)];
+            usedColors.add(newColors.corner1);
+            availableColors = availableColors.filter(color => !usedColors.has(color));
+
+            newColors.corner2 = availableColors[Math.floor(Math.random() * availableColors.length)];
+            usedColors.add(newColors.corner2);
+            availableColors = availableColors.filter(color => !usedColors.has(color));
+
+            newColors.corner3 = availableColors[Math.floor(Math.random() * availableColors.length)];
+            usedColors.add(newColors.corner3);
+            availableColors = availableColors.filter(color => !usedColors.has(color));
+
+            newColors.corner4 = availableColors.length > 0 ? availableColors[Math.floor(Math.random() * availableColors.length)] : colorOptions[Math.floor(Math.random() * colorOptions.length)];
+            if (newColors.corner4 === newColors.default) {
+                newColors.corner4 = colorOptions.find(color => !usedColors.has(color) && color !== newColors.default) || '#808080'; // 备用灰色
+            }
+
+            // 更新颜色对象
+            colors.center = newColors.center;
+            colors.corner1 = newColors.corner1;
+            colors.corner2 = newColors.corner2;
+            colors.corner3 = newColors.corner3;
+            colors.corner4 = newColors.corner4;
+            colors.default = newColors.default;
+
+            // 更新输入框值
             document.getElementById('centerColor').value = colors.center;
             document.getElementById('corner1Color').value = colors.corner1;
             document.getElementById('corner2Color').value = colors.corner2;
             document.getElementById('corner3Color').value = colors.corner3;
             document.getElementById('corner4Color').value = colors.corner4;
             document.getElementById('defaultColor').value = colors.default;
+
             drawGrid();
         }
 
@@ -636,6 +675,11 @@
         async function mintNFT() {
             if (!web3 || !contract || !accounts) {
                 document.getElementById('transactionStatus').innerText = '请先连接钱包。';
+                return;
+            }
+            // 检查5个格子颜色是否与默认颜色相同
+            if ([colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4].includes(colors.default)) {
+                document.getElementById('transactionStatus').innerText = '5个格子的颜色不能与默认颜色相同，请调整！';
                 return;
             }
             const mintButton = document.getElementById('mintBtn');
@@ -755,28 +799,45 @@
         document.getElementById('connectWallet').addEventListener('click', connectWallet);
         document.getElementById('centerColor').addEventListener('input', () => {
             colors.center = document.getElementById('centerColor').value;
+            checkColorConflict();
             drawGrid();
         });
         document.getElementById('corner1Color').addEventListener('input', () => {
             colors.corner1 = document.getElementById('corner1Color').value;
+            checkColorConflict();
             drawGrid();
         });
         document.getElementById('corner2Color').addEventListener('input', () => {
             colors.corner2 = document.getElementById('corner2Color').value;
+            checkColorConflict();
             drawGrid();
         });
         document.getElementById('corner3Color').addEventListener('input', () => {
             colors.corner3 = document.getElementById('corner3Color').value;
+            checkColorConflict();
             drawGrid();
         });
         document.getElementById('corner4Color').addEventListener('input', () => {
             colors.corner4 = document.getElementById('corner4Color').value;
+            checkColorConflict();
             drawGrid();
         });
         document.getElementById('defaultColor').addEventListener('input', () => {
             colors.default = document.getElementById('defaultColor').value;
+            checkColorConflict();
             drawGrid();
         });
+
+        function checkColorConflict() {
+            const customColors = [colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4];
+            if (customColors.includes(colors.default)) {
+                document.getElementById('transactionStatus').innerText = '5个格子的颜色不能与默认颜色相同，请调整！';
+                document.getElementById('mintBtn').disabled = true;
+            } else {
+                document.getElementById('transactionStatus').innerText = '';
+                document.getElementById('mintBtn').disabled = false;
+            }
+        }
 
         // Initialize
         window.onload = () => {
@@ -784,6 +845,7 @@
             if (!window.ethereum) {
                 document.getElementById('transactionStatus').innerText = '未检测到钱包，请安装 MetaMask。';
             }
+            checkColorConflict();
         };
 
         window.ethereum?.on('chainChanged', () => {
