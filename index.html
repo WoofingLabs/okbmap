@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKB Map</title>
+    <title>OKB Map 网格定制器</title>
     <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body { background: #000000; font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #ffffff; }
@@ -20,7 +20,7 @@
         .control-group { display: flex; flex-direction: column; align-items: flex-start; }
         .status { margin-top: 10px; font-size: 14px; text-align: center; }
         .disabled { opacity: 0.5; pointer-events: none; }
-        #gridCanvas { width: 100%; max-width: 300px; height: 300px; display: block; margin: 0 auto 20px; border: 1px solid #444444; border-radius: 4px; }
+        #gridCanvas { width: 100%; max-width: 784px; height: 784px; display: block; margin: 0 auto 20px; border: 1px solid #444444; border-radius: 4px; }
         .action-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .nft-viewer { margin-top: 20px; }
         .nft-viewer h2 { font-size: 18px; text-align: center; margin-bottom: 10px; }
@@ -28,17 +28,18 @@
         .nft-card { background: #2d2d2d; padding: 10px; border-radius: 4px; text-align: center; }
         .nft-card img { width: 100%; max-width: 120px; height: auto; border-radius: 4px; }
         .nft-card p { font-size: 12px; margin: 5px 0; }
+        .wallet-section { margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>OKB Map</h1>
-        <div class="section">
+        <div class="wallet-section">
             <button id="connectWallet" class="button">连接钱包</button>
             <div id="walletStatus" class="status">未连接</div>
         </div>
+        <h1>OKB Map 网格定制器</h1>
         <div class="section">
-            <canvas id="gridCanvas" width="300" height="300"></canvas>
+            <canvas id="gridCanvas" width="784" height="784"></canvas>
             <div class="controls">
                 <div class="control-group">
                     <label for="centerColor">中心颜色 (3,3)</label>
@@ -310,51 +311,6 @@
                         <option value="#FFB6C1">浅粉</option>
                     </select>
                 </div>
-                <div class="control-group">
-                    <label for="borderColor">边框颜色</label>
-                    <select id="borderColor" disabled>
-                        <option value="#FF0000">红色</option>
-                        <option value="#00FF00">绿色</option>
-                        <option value="#0000FF">蓝色</option>
-                        <option value="#FFFF00">黄色</option>
-                        <option value="#FF00FF">品红</option>
-                        <option value="#00FFFF">青色</option>
-                        <option value="#FFFFFF">白色</option>
-                        <option value="#000000">黑色</option>
-                        <option value="#FF4500">橙红色</option>
-                        <option value="#FFA500">橙色</option>
-                        <option value="#FFD700">金色</option>
-                        <option value="#ADFF2F">绿黄色</option>
-                        <option value="#9ACD32">橄榄绿</option>
-                        <option value="#32CD32">闪光绿</option>
-                        <option value="#228B22">森林绿</option>
-                        <option value="#4169E1">皇家蓝</option>
-                        <option value="#1E90FF">闪电蓝</option>
-                        <option value="#00B7EB">深天蓝</option>
-                        <option value="#6A5ACD">石板蓝</option>
-                        <option value="#8A2BE2">蓝紫</option>
-                        <option value="#9370DB">中紫</option>
-                        <option value="#DDA0DD">李子色</option>
-                        <option value="#FF69B4">热情粉</option>
-                        <option value="#FF1493">深粉</option>
-                        <option value="#C71585">中紫红</option>
-                        <option value="#CD5C5C">印度红</option>
-                        <option value="#DC143C">猩红</option>
-                        <option value="#B22222">耐火砖红</option>
-                        <option value="#F4A460">沙棕</option>
-                        <option value="#D2691E">巧克力色</option>
-                        <option value="#8B4513">鞍棕</option>
-                        <option value="#A52A2A">棕色</option>
-                        <option value="#DEB887">硬木色</option>
-                        <option value="#D2B48C">棕褐色</option>
-                        <option value="#F0E68C">卡其色</option>
-                        <option value="#98FB98">浅绿</option>
-                        <option value="#AFEEEE">浅青</option>
-                        <option value="#87CEEB">天空蓝</option>
-                        <option value="#E6E6FA">淡紫</option>
-                        <option value="#FFB6C1">浅粉</option>
-                    </select>
-                </div>
             </div>
             <div class="action-buttons">
                 <button id="randomizeBtn" onclick="randomizeColors()" disabled>随机颜色</button>
@@ -514,7 +470,6 @@
             document.getElementById('corner3Color').disabled = !enabled;
             document.getElementById('corner4Color').disabled = !enabled;
             document.getElementById('defaultColor').disabled = !enabled;
-            document.getElementById('borderColor').disabled = !enabled;
             document.getElementById('randomizeBtn').disabled = !enabled;
             document.getElementById('downloadBtn').disabled = !enabled;
             document.getElementById('mintBtn').disabled = !enabled;
@@ -531,8 +486,7 @@
             corner2: '#0000FF',
             corner3: '#FFFF00',
             corner4: '#FFFFFF',
-            default: '#000000',
-            border: '#FF0000'
+            default: '#000000'
         };
 
         const colorOptions = [
@@ -571,11 +525,6 @@
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
                 }
             }
-            if (colors.border) {
-                ctx.strokeStyle = colors.border;
-                ctx.lineWidth = 1;
-                ctx.strokeRect(0, 0, canvas.width, canvas.height);
-            }
         }
 
         function randomizeColors() {
@@ -612,15 +561,12 @@
                 newColors.corner4 = colorOptions.find(color => !usedColors.has(color) && color !== newColors.default) || '#808080';
             }
 
-            newColors.border = colorOptions[Math.floor(Math.random() * colorOptions.length)];
-
             colors.center = newColors.center;
             colors.corner1 = newColors.corner1;
             colors.corner2 = newColors.corner2;
             colors.corner3 = newColors.corner3;
             colors.corner4 = newColors.corner4;
             colors.default = newColors.default;
-            colors.border = newColors.border;
 
             document.getElementById('centerColor').value = colors.center;
             document.getElementById('corner1Color').value = colors.corner1;
@@ -628,7 +574,6 @@
             document.getElementById('corner3Color').value = colors.corner3;
             document.getElementById('corner4Color').value = colors.corner4;
             document.getElementById('defaultColor').value = colors.default;
-            document.getElementById('borderColor').value = colors.border;
 
             drawGrid();
             checkColorConflict();
@@ -671,10 +616,6 @@
             drawGrid();
             checkColorConflict();
         });
-        document.getElementById('borderColor').addEventListener('change', () => {
-            colors.border = document.getElementById('borderColor').value;
-            drawGrid();
-        });
 
         function checkColorConflict() {
             const customColors = [colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4];
@@ -687,82 +628,82 @@
             }
         }
 
-async function mintNFT() {
-    if (!web3 || !contract || !accounts) {
-        showStatus('请先连接钱包。');
-        return;
-    }
-    const mintButton = document.getElementById('mintBtn');
-    mintButton.disabled = true;
-    try {
-        const balance = await web3.eth.getBalance(accounts[0]);
-        if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
-            showStatus('钱包余额不足，请充值！');
-            return;
-        }
-        showStatus('正在铸造NFT...');
-        const totalSupply = await contract.methods.totalSupply().call();
-        const imageData = canvas.toDataURL('image/png').split(',')[1];
-        const metadata = {
-            name: `OKB Map #${parseInt(totalSupply) + 1}`,
-            description: 'A unique 5x5 grid NFT with customizable corners, center, and border on OKB Map',
-            image: `data:image/png;base64,${imageData}`,
-            attributes: [
-                { trait_type: 'Center Color (3,3)', value: colors.center },
-                { trait_type: 'Top-Left Corner (2,2)', value: colors.corner1 },
-                { trait_type: 'Top-Right Corner (2,4)', value: colors.corner2 },
-                { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
-                { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
-                { trait_type: 'Default Color', value: colors.default },
-                { trait_type: 'Border Color', value: colors.border }
-            ]
-        };
-        const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
-        const colorToName = {
-            '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
-            '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
-            '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
-            '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
-            '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
-            '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
-            '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
-            '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
-            '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
-            '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
-        };
-        const attributes = [
-            `${colorToName[colors.center]}1`,
-            `${colorToName[colors.corner1]}2`,
-            `${colorToName[colors.corner2]}3`,
-            `${colorToName[colors.corner3]}4`,
-            `${colorToName[colors.corner4]}5`,
-            `${colorToName[colors.default]}6`,
-            `${colorToName[colors.border]}7`
-        ];
-        const uniqueAttributes = new Set(attributes);
-        if (uniqueAttributes.size < attributes.length) {
-            showStatus('铸造失败: attributes 中存在重复值，请调整颜色！');
-            return;
-        }
+        async function mintNFT() {
+            if (!web3 || !contract || !accounts) {
+                showStatus('请先连接钱包。');
+                return;
+            }
+            const mintButton = document.getElementById('mintBtn');
+            mintButton.disabled = true;
+            try {
+                const balance = await web3.eth.getBalance(accounts[0]);
+                if (web3.utils.toWei(balance, 'wei') < MINT_PRICE) {
+                    showStatus('钱包余额不足，请充值！');
+                    return;
+                }
+                showStatus('正在铸造NFT...');
+                const totalSupply = await contract.methods.totalSupply().call();
+                const imageData = canvas.toDataURL('image/png').split(',')[1];
+                const metadata = {
+                    name: `OKB Map #${parseInt(totalSupply) + 1}`,
+                    description: 'A unique 5x5 grid NFT with customizable corners, center, and border on OKB Map',
+                    image: `data:image/png;base64,${imageData}`,
+                    attributes: [
+                        { trait_type: 'Center Color (3,3)', value: colors.center },
+                        { trait_type: 'Top-Left Corner (2,2)', value: colors.corner1 },
+                        { trait_type: 'Top-Right Corner (2,4)', value: colors.corner2 },
+                        { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
+                        { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
+                        { trait_type: 'Default Color', value: colors.default },
+                        { trait_type: 'Border', value: 'OKB' }
+                    ]
+                };
+                const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+                const colorToName = {
+                    '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
+                    '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
+                    '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
+                    '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
+                    '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
+                    '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
+                    '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
+                    '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
+                    '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
+                    '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
+                };
+                const attributes = [
+                    `${colorToName[colors.center]}1`,
+                    `${colorToName[colors.corner1]}2`,
+                    `${colorToName[colors.corner2]}3`,
+                    `${colorToName[colors.corner3]}4`,
+                    `${colorToName[colors.corner4]}5`,
+                    `${colorToName[colors.default]}6`,
+                    'OKB7'
+                ];
+                const uniqueAttributes = new Set(attributes);
+                if (uniqueAttributes.size < attributes.length) {
+                    showStatus('铸造失败: attributes 中存在重复值，请调整颜色！');
+                    return;
+                }
 
-        await contract.methods.mintNFT(tokenURI, attributes).send({
-            from: accounts[0],
-            value: MINT_PRICE
-        });
-        showStatus('NFT铸造成功！');
-        fetchOwnedNFTs();
-    } catch (error) {
-        showStatus('铸造失败: ' + error.message);
-        console.error('Minting Error:', error);
-        if (error.message.includes('revert')) {
-            showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
-        } else if (error.message.includes('out of gas')) {
-            showStatus('铸造失败: Gas 不足，请增加 Gas Limit。');
+                await contract.methods.mintNFT(tokenURI, attributes).send({
+                    from: accounts[0],
+                    value: MINT_PRICE
+                });
+                showStatus('NFT铸造成功！');
+                fetchOwnedNFTs();
+            } catch (error) {
+                showStatus('铸造失败: ' + error.message);
+                console.error('Minting Error:', error);
+                if (error.message.includes('revert')) {
+                    showStatus('铸造失败: 合约可能拒绝了交易，检查属性唯一性或余额。');
+                } else if (error.message.includes('out of gas')) {
+                    showStatus('铸造失败: Gas 不足，请增加 Gas Limit。');
+                }
+            } finally {
+                mintButton.disabled = false;
+            }
         }
-    } finally {
-        mintButton.disabled = false;
-    }
-}
 
         async function fetchOwnedNFTs() {
             if (!web3 || !contract || !accounts) {
