@@ -20,7 +20,7 @@
         .control-group { display: flex; flex-direction: column; align-items: flex-start; }
         .status { margin-top: 10px; font-size: 14px; text-align: center; }
         .disabled { opacity: 0.5; pointer-events: none; }
-        #gridCanvas { width: 100%; max-width: 784px; height: 784px; display: block; margin: 0 auto 20px; border: 1px solid #444444; border-radius: 4px; }
+        #gridCanvas { width: 100%; max-width: 300px; height: 300px; display: block; margin: 0 auto 20px; border: 1px solid #444444; border-radius: 4px; }
         .action-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .nft-viewer { margin-top: 20px; }
         .nft-viewer h2 { font-size: 18px; text-align: center; margin-bottom: 10px; }
@@ -28,18 +28,17 @@
         .nft-card { background: #2d2d2d; padding: 10px; border-radius: 4px; text-align: center; }
         .nft-card img { width: 100%; max-width: 120px; height: auto; border-radius: 4px; }
         .nft-card p { font-size: 12px; margin: 5px 0; }
-        .wallet-section { margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="wallet-section">
+        <h1>OKB Map 网格定制器</h1>
+        <div class="section">
             <button id="connectWallet" class="button">连接钱包</button>
             <div id="walletStatus" class="status">未连接</div>
         </div>
-        <h1>OKB Map 网格定制器</h1>
         <div class="section">
-            <canvas id="gridCanvas" width="784" height="784"></canvas>
+            <canvas id="gridCanvas" width="300" height="300"></canvas>
             <div class="controls">
                 <div class="control-group">
                     <label for="centerColor">中心颜色 (3,3)</label>
@@ -525,6 +524,9 @@
                     ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
                 }
             }
+            ctx.strokeStyle = '#000000'; // 默认 OKB 边框颜色为黑色
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
         }
 
         function randomizeColors() {
@@ -622,6 +624,33 @@
             if (customColors.includes(colors.default)) {
                 showStatus('5个格子的颜色不能与默认颜色相同，请调整！');
                 document.getElementById('mintBtn').disabled = true;
+                return;
+            }
+            const colorToName = {
+                '#FF0000': 'Red', '#00FF00': 'Green', '#0000FF': 'Blue', '#FFFF00': 'Yellow',
+                '#FF00FF': 'Magenta', '#00FFFF': 'Cyan', '#FFFFFF': 'White', '#000000': 'Black',
+                '#FF4500': 'OrangeRed', '#FFA500': 'Orange', '#FFD700': 'Gold', '#ADFF2F': 'YellowGreen',
+                '#9ACD32': 'Olive', '#32CD32': 'LimeGreen', '#228B22': 'ForestGreen', '#4169E1': 'RoyalBlue',
+                '#1E90FF': 'DodgerBlue', '#00B7EB': 'DeepSkyBlue', '#6A5ACD': 'SlateBlue', '#8A2BE2': 'BlueViolet',
+                '#9370DB': 'MediumPurple', '#DDA0DD': 'Plum', '#FF69B4': 'HotPink', '#FF1493': 'DeepPink',
+                '#C71585': 'MediumVioletRed', '#CD5C5C': 'IndianRed', '#DC143C': 'Crimson', '#B22222': 'FireBrick',
+                '#F4A460': 'SandyBrown', '#D2691E': 'Chocolate', '#8B4513': 'SaddleBrown', '#A52A2A': 'Brown',
+                '#DEB887': 'BurlyWood', '#D2B48C': 'Tan', '#F0E68C': 'Khaki', '#98FB98': 'PaleGreen',
+                '#AFEEEE': 'PaleTurquoise', '#87CEEB': 'SkyBlue', '#E6E6FA': 'Lavender', '#FFB6C1': 'LightPink'
+            };
+            const attributes = [
+                `${colorToName[colors.center]}1`,
+                `${colorToName[colors.corner1]}2`,
+                `${colorToName[colors.corner2]}3`,
+                `${colorToName[colors.corner3]}4`,
+                `${colorToName[colors.corner4]}5`,
+                `${colorToName[colors.default]}6`,
+                'Map7'
+            ];
+            const uniqueAttributes = new Set(attributes);
+            if (uniqueAttributes.size !== 7) {
+                showStatus('7个属性不能有重复，请调整颜色！');
+                document.getElementById('mintBtn').disabled = true;
             } else {
                 showStatus('');
                 document.getElementById('mintBtn').disabled = false;
@@ -655,7 +684,7 @@
                         { trait_type: 'Bottom-Left Corner (4,2)', value: colors.corner3 },
                         { trait_type: 'Bottom-Right Corner (4,4)', value: colors.corner4 },
                         { trait_type: 'Default Color', value: colors.default },
-                        { trait_type: 'Border', value: 'OKB' }
+                        { trait_type: 'Map', value: 'OKB' }
                     ]
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
@@ -678,13 +707,8 @@
                     `${colorToName[colors.corner3]}4`,
                     `${colorToName[colors.corner4]}5`,
                     `${colorToName[colors.default]}6`,
-                    'OKB7'
+                    'Map7'
                 ];
-                const uniqueAttributes = new Set(attributes);
-                if (uniqueAttributes.size < attributes.length) {
-                    showStatus('铸造失败: attributes 中存在重复值，请调整颜色！');
-                    return;
-                }
 
                 await contract.methods.mintNFT(tokenURI, attributes).send({
                     from: accounts[0],
