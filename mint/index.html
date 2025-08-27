@@ -949,22 +949,22 @@
                 document.getElementById('mintInfo').innerHTML = '';
                 return;
             }
-            const mapName = document.getElementById('mapNameInput').value;
+            let mapName = document.getElementById('mapNameInput').value;
             if (mapName === '' || isNaN(mapName) || mapName < 0) {
-                document.getElementById('mintCost').innerText = 'Please enter a valid Map Name (0 or greater).';
-                document.getElementById('blockStatus').innerText = '';
-                document.getElementById('previewMint').disabled = true;
-                document.getElementById('mintButton').disabled = true;
-                document.getElementById('mintInfo').innerHTML = '';
-                return;
+                // 自动设置为当前区块高度除以 1000
+                const currentBlock = await web3.eth.getBlockNumber();
+                mapName = Math.floor(currentBlock / 1000);
+                document.getElementById('mapNameInput').value = mapName;
+            } else {
+                mapName = parseInt(mapName);
             }
             try {
-                // Get mint cost
+                // 获取铸造费用
                 const cost = await okbMapContract.methods.getMintCost(mapName).call();
                 const costInOKB = web3.utils.fromWei(cost, 'ether');
                 document.getElementById('mintCost').innerText = `Mint Cost: ${costInOKB} OKB`;
 
-                // Check OKB balance
+                // 检查余额
                 const balance = await web3.eth.getBalance(accounts[0]);
                 const balanceInOKB = web3.utils.fromWei(balance, 'ether');
                 let statusMessage = '';
@@ -975,19 +975,7 @@
                     canMint = false;
                 }
 
-                // Check block height
-                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
-                const currentBlock = await web3.eth.getBlockNumber();
-                const blockStart = mapInfo.blockStart;
-                if (currentBlock < blockStart) {
-                    statusMessage += `<br>Invalid block height for Map Name ${mapName}. Current block (${currentBlock}) is too low. Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`;
-                    document.getElementById('blockStatus').innerText = `Invalid block height. Current: ${currentBlock}, Required: >= ${blockStart}`;
-                    canMint = false;
-                } else {
-                    document.getElementById('blockStatus').innerText = `Block height valid: Current ${currentBlock}, Required: >= ${blockStart}`;
-                }
-
-                // Check if mapName is already minted
+                // 检查 mapName 是否已铸造
                 try {
                     const owner = await okbMapContract.methods.ownerOf(mapName).call();
                     const events = await okbMapContract.getPastEvents('Transfer', {
@@ -1005,7 +993,7 @@
                     }
                 }
 
-                // Check attribute uniqueness
+                // 检查属性唯一性
                 const attributes = getAttributes();
                 const isUnique = await checkAttributeUniqueness(attributes);
                 if (!isUnique) {
@@ -1013,8 +1001,9 @@
                     canMint = false;
                 }
 
-                // Update UI
+                // 更新 UI
                 document.getElementById('mintCost').innerHTML = `Mint Cost: ${costInOKB} OKB${statusMessage}`;
+                document.getElementById('blockStatus').innerText = `Block height: Current ${currentBlock}, Using Map Name: ${mapName}`;
                 document.getElementById('previewMint').disabled = !canMint;
                 document.getElementById('mintButton').disabled = true;
                 document.getElementById('mintInfo').innerHTML = '';
@@ -1266,7 +1255,7 @@
             }
         }
 
-                    // Preview mint information
+        // Preview mint information
         async function previewMintInfo() {
             if (!web3 || !accounts) {
                 showStatus('Please connect wallet first.');
@@ -1275,16 +1264,16 @@
                 return;
             }
 
-            const mapNameInput = document.getElementById('mapNameInput').value;
-            if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
-                showStatus('Please enter a valid Map Name (0 or greater).');
-                document.getElementById('mintInfo').innerHTML = '';
-                document.getElementById('mintButton').disabled = true;
-                return;
+            let mapName = document.getElementById('mapNameInput').value;
+            if (mapName === '' || isNaN(mapName) || mapName < 0) {
+                const currentBlock = await web3.eth.getBlockNumber();
+                mapName = Math.floor(currentBlock / 1000);
+                document.getElementById('mapNameInput').value = mapName;
+            } else {
+                mapName = parseInt(mapName);
             }
-            const mapName = parseInt(mapNameInput);
 
-            // Check color conflict
+            // 检查颜色冲突
             if (!checkColorConflict()) {
                 showStatus('Color conflict detected. Please generate a new grid.');
                 document.getElementById('mintInfo').innerHTML = '';
@@ -1292,7 +1281,7 @@
                 return;
             }
 
-            // Get attributes
+            // 获取属性
             const attributes = getAttributes();
             if (attributes.length !== 7) {
                 showStatus('Invalid attributes: Must have exactly 7 attributes.');
@@ -1301,7 +1290,7 @@
                 return;
             }
 
-            // Check attribute uniqueness
+            // 检查属性唯一性
             const isUnique = await checkAttributeUniqueness(attributes);
             if (!isUnique) {
                 showStatus('Attribute combination already used. Please generate a new grid.');
@@ -1310,7 +1299,7 @@
                 return;
             }
 
-            // Get mint cost
+            // 获取铸造费用
             let costInOKB;
             try {
                 const cost = await okbMapContract.methods.getMintCost(mapName).call();
@@ -1322,7 +1311,7 @@
                 return;
             }
 
-            // Check OKB balance
+            // 检查余额
             let balanceInOKB;
             try {
                 const balance = await web3.eth.getBalance(accounts[0]);
@@ -1340,33 +1329,7 @@
                 return;
             }
 
-            // Check block height (skip for mapName >= 29990)
-            let currentBlock, blockStart, suggestedMapName;
-            if (mapName < 29990) {
-                try {
-                    const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
-                    currentBlock = await web3.eth.getBlockNumber();
-                    blockStart = mapInfo.blockStart;
-                    suggestedMapName = Math.floor(currentBlock / 1000);
-                    if (currentBlock < blockStart) {
-                        showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
-                        document.getElementById('mintInfo').innerHTML = '';
-                        document.getElementById('mintButton').disabled = true;
-                        return;
-                    }
-                } catch (error) {
-                    showStatus(`Error checking block height: ${error.message}`);
-                    document.getElementById('mintInfo').innerHTML = '';
-                    document.getElementById('mintButton').disabled = true;
-                    return;
-                }
-            } else {
-                currentBlock = await web3.eth.getBlockNumber();
-                blockStart = 'N/A (Free mint)';
-                suggestedMapName = 'N/A';
-            }
-
-            // Check if mapName is already minted
+            // 检查 mapName 是否已铸造
             try {
                 const owner = await okbMapContract.methods.ownerOf(mapName).call();
                 showStatus(`Map Name ${mapName} is already minted by <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>.`);
@@ -1382,7 +1345,7 @@
                 }
             }
 
-            // Generate token URI
+            // 生成 token URI
             let totalSupply;
             try {
                 totalSupply = await okbMapContract.methods.totalSupply().call();
@@ -1410,7 +1373,7 @@
             };
             const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
 
-            // Display mint information
+                        // 显示铸造信息
             const seed = document.getElementById('seedInput').value;
             const mintInfo = `
                 <strong>Mint Preview:</strong><br>
@@ -1425,8 +1388,8 @@
                 - Terrain Feature: ${attributes[5]}<br>
                 - Map Name Length: ${attributes[6]}<br>
                 <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
-                <strong>Current Block:</strong> ${currentBlock}<br>
-                <strong>Block Requirement:</strong> ${blockStart}<br>
+                <strong>Current Block:</strong> ${await web3.eth.getBlockNumber()}<br>
+                <strong>Using Map Name:</strong> ${mapName}<br>
                 <strong>Image Preview:</strong><br>
                 <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
             `;
@@ -1443,26 +1406,27 @@
                 return;
             }
 
-            const mapNameInput = document.getElementById('mapNameInput').value;
-            if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
-                showStatus('Please enter a valid Map Name (0 or greater).');
-                document.getElementById('mintButton').disabled = true;
-                return;
+            let mapName = document.getElementById('mapNameInput').value;
+            if (mapName === '' || isNaN(mapName) || mapName < 0) {
+                const currentBlock = await web3.eth.getBlockNumber();
+                mapName = Math.floor(currentBlock / 1000);
+                document.getElementById('mapNameInput').value = mapName;
+            } else {
+                mapName = parseInt(mapName);
             }
-            const mapName = parseInt(mapNameInput);
 
-            // Disable button during minting
+            // 禁用按钮以防止重复铸造
             document.getElementById('mintButton').disabled = true;
-            stopGridRefresh(); // Pause auto-refresh during minting
+            stopGridRefresh();
 
-            // Check color conflict
+            // 检查颜色冲突
             if (!checkColorConflict()) {
                 showStatus('Color conflict detected. Please generate a new grid.');
                 startGridRefresh();
                 return;
             }
 
-            // Get attributes
+            // 获取属性
             const attributes = getAttributes();
             if (attributes.length !== 7) {
                 showStatus('Invalid attributes: Must have exactly 7 attributes.');
@@ -1470,7 +1434,7 @@
                 return;
             }
 
-            // Check attribute uniqueness
+            // 检查属性唯一性
             const isUnique = await checkAttributeUniqueness(attributes);
             if (!isUnique) {
                 showStatus('Attribute combination already used. Please generate a new grid.');
@@ -1478,7 +1442,7 @@
                 return;
             }
 
-            // Generate token URI
+            // 生成 token URI
             let totalSupply;
             try {
                 totalSupply = await okbMapContract.methods.totalSupply().call();
@@ -1506,11 +1470,11 @@
             const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
 
             try {
-                // Get mint cost
+                // 获取铸造费用
                 const cost = await okbMapContract.methods.getMintCost(mapName).call();
                 const costInOKB = web3.utils.fromWei(cost, 'ether');
 
-                // Check OKB balance
+                // 检查余额
                 const balance = await web3.eth.getBalance(accounts[0]);
                 const balanceInOKB = web3.utils.fromWei(balance, 'ether');
                 if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
@@ -1519,7 +1483,7 @@
                     return;
                 }
 
-                // Check if mapName is already minted
+                // 检查 mapName 是否已铸造
                 try {
                     const owner = await okbMapContract.methods.ownerOf(mapName).call();
                     showStatus(`Map Name ${mapName} is already minted by <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>.`);
@@ -1533,7 +1497,7 @@
                     }
                 }
 
-                // Estimate gas
+                // 估算 Gas
                 let gas;
                 try {
                     gas = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).estimateGas({
@@ -1546,15 +1510,15 @@
                     return;
                 }
 
-                // Send transaction
+                // 发送交易
                 showStatus('Minting in progress...');
                 const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
                     from: accounts[0],
                     value: cost,
-                    gas: Math.floor(gas * 1.2) // Add 20% gas buffer
+                    gas: Math.floor(gas * 1.2)
                 });
 
-                // Success
+                // 成功
                 showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
                 document.getElementById('mintInfo').innerHTML = '';
                 checkMapStatus();
@@ -1579,75 +1543,72 @@
 
         // Fetch owned NFTs
         async function fetchOwnedNFTs() {
-            if (!web3 || !okbMapContract || !accounts) {
-                showStatus('Please connect wallet to view NFTs.');
-                document.getElementById('nftList').innerHTML = '<p>Please connect wallet to view NFTs.</p>';
+            if (!web3 || !accounts) {
+                document.getElementById('nftList').innerHTML = '<p>Please connect wallet to view your NFTs.</p>';
                 return;
             }
-            const nftList = document.getElementById('nftList');
-            nftList.innerHTML = '<p>Loading your NFTs...</p>';
             try {
                 const tokenIds = await okbMapContract.methods.walletOfOwner(accounts[0]).call();
+                const nftList = document.getElementById('nftList');
+                nftList.innerHTML = '';
                 if (tokenIds.length === 0) {
-                    nftList.innerHTML = '<p>You do not own any OKB Map NFTs.</p>';
+                    nftList.innerHTML = '<p>No NFTs owned yet.</p>';
                     return;
                 }
-                nftList.innerHTML = '';
                 for (const tokenId of tokenIds) {
-                    const tokenURI = await okbMapContract.methods.tokenURI(tokenId).call();
-                    await displayNFT(tokenId, tokenURI);
+                    try {
+                        const tokenURI = await okbMapContract.methods.tokenURI(tokenId).call();
+                        let metadata;
+                        if (tokenURI.startsWith('data:application/json;base64,')) {
+                            const base64Data = tokenURI.replace('data:application/json;base64,', '');
+                            metadata = JSON.parse(atob(base64Data));
+                        } else {
+                            const response = await fetch(tokenURI);
+                            metadata = await response.json();
+                        }
+                        const nftCard = document.createElement('div');
+                        nftCard.className = 'nft-card';
+                        nftCard.innerHTML = `
+                            <p>Map Name: ${tokenId}</p>
+                            <img src="${metadata.image}" alt="NFT Image">
+                            <p>${metadata.name}</p>
+                        `;
+                        nftList.appendChild(nftCard);
+                    } catch (error) {
+                        console.error(`Error fetching NFT ${tokenId}:`, error);
+                    }
                 }
             } catch (error) {
-                nftList.innerHTML = '<p>Failed to load NFTs: ' + error.message + '</p>';
-                showStatus(`Error loading NFTs: ${error.message}`);
+                showStatus(`Error fetching owned NFTs: ${error.message}`);
+                document.getElementById('nftList').innerHTML = '<p>Error loading NFTs.</p>';
             }
-        }
-
-        // Display NFT
-        async function displayNFT(tokenId, tokenURI) {
-            const nftList = document.getElementById('nftList');
-            let metadata;
-            try {
-                if (tokenURI.startsWith('data:application/json;base64,')) {
-                    const base64Data = tokenURI.split(',')[1];
-                    metadata = JSON.parse(atob(base64Data));
-                } else {
-                    metadata = { name: `OKB Map #${tokenId}`, image: 'Unknown' };
-                }
-            } catch (error) {
-                metadata = { name: `OKB Map #${tokenId}`, image: 'Unknown' };
-            }
-            const nftDiv = document.createElement('div');
-            nftDiv.className = 'nft-card';
-            nftDiv.innerHTML = `
-                <img src="${metadata.image}" alt="${metadata.name}">
-                <p>${metadata.name} (ID: ${tokenId})</p>
-            `;
-            nftList.appendChild(nftDiv);
         }
 
         // Event listeners
         document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        window.ethereum?.on('chainChanged', () => window.location.reload());
-        window.ethereum?.on('accountsChanged', (newAccounts) => {
-            accounts = newAccounts;
-            if (newAccounts.length === 0) {
-                showStatus('Not connected');
-                enableInputs(false);
-                stopGridRefresh();
-                document.getElementById('nftList').innerHTML = '<p>Please connect wallet to view NFTs.</p>';
-            } else {
-                connectWallet();
-            }
-        });
+        document.getElementById('mapNameInput').addEventListener('input', checkMapStatus);
 
         // Initialize
-        window.onload = () => {
-            drawGrid('default');
-            if (!window.ethereum) {
-                showStatus('No wallet detected. Please install MetaMask.');
-            }
-        };
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (newAccounts) => {
+                if (newAccounts.length === 0) {
+                    accounts = null;
+                    document.getElementById('walletStatus').innerText = 'Not connected';
+                    document.getElementById('okbBalance').innerText = '';
+                    document.getElementById('mintCost').innerText = '';
+                    document.getElementById('blockStatus').innerText = '';
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('nftList').innerHTML = '';
+                    enableInputs(false);
+                    stopGridRefresh();
+                } else {
+                    connectWallet();
+                }
+            });
+            window.ethereum.on('chainChanged', () => {
+                connectWallet();
+            });
+        }
     </script>
 </body>
 </html>
