@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OKB Map - TerraVerse</title>
+    <link rel="icon" href="https://woofingjace.com/images/jace.png" type="image/x-icon">
     <style>
         body {
             background: #000000;
@@ -128,6 +129,35 @@
             padding: 10px;
             border-radius: 4px;
         }
+        .nft-viewer {
+            margin-top: 20px;
+        }
+        .nft-viewer h2 {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #nftList {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .nft-card {
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .nft-card img {
+            width: 100%;
+            max-width: 120px;
+            height: auto;
+            border-radius: 4px;
+        }
+        .nft-card p {
+            font-size: 12px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -139,8 +169,8 @@
                 <div id="walletStatus" class="status">Not connected</div>
             </div>
             <div class="control-group">
-                <label for="hashInput">Enter Hash (for testing)</label>
-                <input type="text" id="hashInput" placeholder="Enter hash or leave blank for random" onkeypress="if(event.key === 'Enter') generateGrid()">
+                <label for="seedInput">Seed (Auto-generated)</label>
+                <input type="text" id="seedInput" readonly placeholder="Connect wallet to generate seed">
             </div>
             <canvas id="gridCanvas" width="300" height="300"></canvas>
             <div class="controls">
@@ -416,12 +446,12 @@
                 </div>
             </div>
             <div class="action-buttons">
-                <button onclick="generateGrid()">Random Hash</button>
+                <button onclick="generateGrid()">Generate Grid</button>
                 <button onclick="downloadGrid()">Download Image</button>
                 <button id="previewMint" onclick="previewMintInfo()" disabled>Preview Mint</button>
             </div>
             <div class="mint-section">
-                <label for="mapNameInput">Enter Map Name (Token ID)</label>
+                <label for="mapNameInput">Map Name (Token ID)</label>
                 <input type="number" id="mapNameInput" placeholder="Enter Map Name (0 or greater)" oninput="checkMapStatus()">
                 <div id="mintCost" class="status"></div>
                 <div id="okbBalance" class="status"></div>
@@ -431,12 +461,16 @@
             </div>
             <div id="transactionStatus" class="status"></div>
         </div>
+        <div class="nft-viewer">
+            <h2>Your OKB Map NFTs</h2>
+            <div id="nftList"></div>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.8.0/sha3.min.js"></script>
     <script>
         let web3, accounts, okbMapContract;
+        let refreshInterval;
 
         const contractAddress = '0x342c1c0160075847A167aDb739eCd465D9385103';
         const contractABI = [
@@ -555,7 +589,6 @@
                     {"internalType": "uint256", "name": "blockStart", "type": "uint256"},
                     {"internalType": "uint256", "name": "blockEnd", "type": "uint256"}
                 ],
-                "name": "getMapInfo",
                 "stateMutability": "view",
                 "type": "function"
             },
@@ -875,6 +908,8 @@
                 enableInputs(true);
                 updateOKBBalance();
                 checkMapStatus();
+                fetchOwnedNFTs();
+                startGridRefresh();
             } catch (error) {
                 showStatus('Failed to connect: ' + error.message);
             }
@@ -944,7 +979,6 @@
                 const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
                 const currentBlock = await web3.eth.getBlockNumber();
                 const blockStart = mapInfo.blockStart;
-                const blockEnd = mapInfo.blockEnd;
                 if (currentBlock < blockStart) {
                     statusMessage += `<br>Invalid block height for Map Name ${mapName}. Current block (${currentBlock}) is too low. Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`;
                     document.getElementById('blockStatus').innerText = `Invalid block height. Current: ${currentBlock}, Required: >= ${blockStart}`;
@@ -975,14 +1009,14 @@
                 const attributes = getAttributes();
                 const isUnique = await checkAttributeUniqueness(attributes);
                 if (!isUnique) {
-                    statusMessage += `<br>Attribute combination already used. Please generate a new hash.`;
+                    statusMessage += `<br>Attribute combination already used. Please generate a new grid.`;
                     canMint = false;
                 }
 
                 // Update UI
                 document.getElementById('mintCost').innerHTML = `Mint Cost: ${costInOKB} OKB${statusMessage}`;
                 document.getElementById('previewMint').disabled = !canMint;
-                document.getElementById('mintButton').disabled = true; // Confirm Mint button enabled only after preview
+                document.getElementById('mintButton').disabled = true;
                 document.getElementById('mintInfo').innerHTML = '';
             } catch (error) {
                 document.getElementById('mintCost').innerText = `Error fetching cost: ${error.message}`;
@@ -1087,22 +1121,36 @@
             document.getElementById('transactionStatus').innerHTML = message;
         }
 
-        // Generate grid based on hash
+        // Start auto-refreshing grid every 15 seconds
+        function startGridRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            generateGrid();
+            refreshInterval = setInterval(generateGrid, 15000);
+        }
+
+        // Stop auto-refresh
+        function stopGridRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+        }
+
+        // Generate grid based on wallet address and timestamp
         function generateGrid() {
-            let hash = document.getElementById('hashInput').value;
-            if (!hash || hash.trim() === '') {
-                hash = Array(64).fill().map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+            if (!web3 || !accounts) {
+                showStatus('Please connect wallet to generate grid.');
+                return;
             }
-            const hashedValue = sha256(hash);
+            const timestamp = Date.now().toString();
+            const seed = sha256(accounts[0] + timestamp); // Combine wallet address and timestamp
+            const hashedValue = sha256(seed);
             const usedColors = new Set();
 
             const selectColor = (colorArray) => {
                 const availableColors = colorArray.filter(color => !usedColors.has(color));
                 if (availableColors.length === 0) {
-                    const index = Math.floor(Math.random() * colorArray.length);
+                    const index = parseInt(hashedValue.slice(0, 8), 16) % colorArray.length;
                     return colorArray[index];
                 }
-                const index = Math.floor(Math.random() * availableColors.length);
+                const index = parseInt(hashedValue.slice(0, 8), 16) % availableColors.length;
                 const selectedColor = availableColors[index];
                 usedColors.add(selectedColor);
                 return selectedColor;
@@ -1122,17 +1170,17 @@
             document.getElementById('corner4Color').value = colors.corner4;
             document.getElementById('defaultColor').value = colors.default;
 
-            document.getElementById('hashInput').value = hash;
+            document.getElementById('seedInput').value = seed;
 
-            drawGrid(hash);
+            drawGrid(seed);
             checkColorConflict();
-            checkMapStatus(); // Re-check map status after generating new grid
+            checkMapStatus();
         }
 
         // Draw grid on canvas
-        function drawGrid(hash) {
+        function drawGrid(seed) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const hashBytes = new Uint8Array(sha256.array(hash));
+            const hashBytes = new Uint8Array(sha256.array(seed));
             for (let row = 1; row <= gridSize; row++) {
                 for (let col = 1; col <= gridSize; col++) {
                     let fillColor = colors.default;
@@ -1158,7 +1206,6 @@
 
         // Download grid as image
         function downloadGrid() {
-            generateGrid();
             const link = document.createElement('a');
             link.download = 'okb-map-terraverse.png';
             link.href = canvas.toDataURL('image/png');
@@ -1185,7 +1232,7 @@
         function getAttributes() {
             const mapName = document.getElementById('mapNameInput').value;
             const digitCount = mapName.toString().length;
-            return [
+            const attributes = [
                 colorNames[soilColors.indexOf(colors.center)] + '1',
                 colorNames[petColors.indexOf(colors.corner1) + 40] + '2',
                 colorNames[vegetationColors.indexOf(colors.corner2) + 80] + '3',
@@ -1194,6 +1241,7 @@
                 colorNames[terrainColors.indexOf(colors.default) + 200] + '6',
                 `${digitCount}D`
             ];
+            return attributes.map(attr => String(attr) || 'Unknown');
         }
 
         // Check if attributes are already used
@@ -1203,20 +1251,22 @@
                 return false;
             }
             try {
-                const attrHash = keccak256(web3.eth.abi.encodeParameters(['string[]'], [attributes]));
+                const validAttributes = attributes.map(attr => String(attr));
+                const encoded = web3.eth.abi.encodeParameters(['string[]'], [validAttributes]);
+                const attrHash = web3.utils.keccak256(encoded);
                 const isUsed = await okbMapContract.methods.usedAttributeCombinations(attrHash).call();
                 if (isUsed) {
-                    showStatus('This attribute combination has already been used.');
+                    showStatus('This attribute combination has already been used. Please generate a new grid.');
                     return false;
                 }
                 return true;
             } catch (error) {
-                showStatus('Error checking attribute uniqueness: ' + error.message);
+                showStatus(`Error checking attribute uniqueness: ${error.message}`);
                 return false;
             }
         }
 
-                        // Preview mint information
+                // Preview mint information
         async function previewMintInfo() {
             if (!web3 || !accounts) {
                 showStatus('Please connect wallet first.');
@@ -1324,10 +1374,26 @@
             }
 
             // Generate token URI
-            const tokenURI = canvas.toDataURL('image/png');
+            const totalSupply = await okbMapContract.methods.totalSupply().call();
+            const imageData = canvas.toDataURL('image/png').split(',')[1];
+            const metadata = {
+                name: `OKB Map #${parseInt(totalSupply) + 1}`,
+                description: 'A unique 5x5 grid NFT with customizable attributes on OKB Map - TerraVerse',
+                image: `data:image/png;base64,${imageData}`,
+                attributes: [
+                    { trait_type: 'Soil Type (3,3)', value: colorNames[soilColors.indexOf(colors.center)] },
+                    { trait_type: 'Guardian Pet (2,2)', value: colorNames[petColors.indexOf(colors.corner1) + 40] },
+                    { trait_type: 'Vegetation Type (2,4)', value: colorNames[vegetationColors.indexOf(colors.corner2) + 80] },
+                    { trait_type: 'Structure Type (4,2)', value: colorNames[structureColors.indexOf(colors.corner3) + 120] },
+                    { trait_type: 'Mystic Artifact (4,4)', value: colorNames[artifactColors.indexOf(colors.corner4) + 160] },
+                    { trait_type: 'Terrain Feature', value: colorNames[terrainColors.indexOf(colors.default) + 200] },
+                    { trait_type: 'Map Name Length', value: `${mapName.toString().length}D` }
+                ]
+            };
+            const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
 
             // Display mint information
-            const seed = document.getElementById('hashInput').value; // Now used as seed (wallet + timestamp)
+            const seed = document.getElementById('seedInput').value;
             const mintInfo = `
                 <strong>Mint Preview:</strong><br>
                 <strong>Map Name (Token ID):</strong> ${mapName}<br>
@@ -1343,10 +1409,10 @@
                 <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
                 <strong>Current Block:</strong> ${currentBlock}<br>
                 <strong>Image Preview:</strong><br>
-                <img src="${tokenURI}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
+                <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1bfa0 1px solid #444444; border-radius: 4px; margin-top: 5px;">
             `;
             document.getElementById('mintInfo').innerHTML = mintInfo;
-            document.getElementById('mintButton').disabled = false; // Enable Confirm Mint button
+            document.getElementById('mintButton').disabled = false;
             showStatus('Please review the mint information and click "Confirm Mint" to proceed.');
         }
 
@@ -1388,7 +1454,23 @@
             }
 
             // Generate token URI
-            const tokenURI = canvas.toDataURL('image/png');
+            const totalSupply = await okbMapContract.methods.totalSupply().call();
+            const imageData = canvas.toDataURL('image/png').split(',')[1];
+            const metadata = {
+                name: `OKB Map #${parseInt(totalSupply) + 1}`,
+                description: 'A unique 5x5 grid NFT with customizable attributes on OKB Map - TerraVerse',
+                image: `data:image/png;base64,${imageData}`,
+                attributes: [
+                    { trait_type: 'Soil Type (3,3)', value: colorNames[soilColors.indexOf(colors.center)] },
+                    { trait_type: 'Guardian Pet (2,2)', value: colorNames[petColors.indexOf(colors.corner1) + 40] },
+                    { trait_type: 'Vegetation Type (2,4)', value: colorNames[vegetationColors.indexOf(colors.corner2) + 80] },
+                    { trait_type: 'Structure Type (4,2)', value: colorNames[structureColors.indexOf(colors.corner3) + 120] },
+                    { trait_type: 'Mystic Artifact (4,4)', value: colorNames[artifactColors.indexOf(colors.corner4) + 160] },
+                    { trait_type: 'Terrain Feature', value: colorNames[terrainColors.indexOf(colors.default) + 200] },
+                    { trait_type: 'Map Name Length', value: `${mapName.toString().length}D` }
+                ]
+            };
+            const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
 
             try {
                 // Get mint cost
@@ -1446,7 +1528,7 @@
                 const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
                     from: accounts[0],
                     value: cost,
-                    gas: Math.floor(gas * 1.2) // Add 20% buffer to gas limit
+                    gas: Math.floor(gas * 1.2)
                 });
 
                 // Success
@@ -1455,6 +1537,7 @@
                 document.getElementById('mintButton').disabled = true;
                 checkMapStatus();
                 updateOKBBalance();
+                fetchOwnedNFTs();
             } catch (error) {
                 let errorMessage = 'Mint failed: ';
                 if (error.message.includes('insufficient funds')) {
@@ -1473,137 +1556,75 @@
             }
         }
 
-        // Generate grid based on wallet address and timestamp
-        function generateGrid() {
-            if (!web3 || !accounts) {
-                showStatus('Please connect wallet to generate grid.');
+        // Fetch owned NFTs
+        async function fetchOwnedNFTs() {
+            if (!web3 || !okbMapContract || !accounts) {
+                showStatus('Please connect wallet to view NFTs.');
                 return;
             }
-            const timestamp = Date.now().toString();
-            const seed = sha256(accounts[0] + timestamp); // Combine wallet address and timestamp
-            const hashedValue = sha256(seed);
-            const usedColors = new Set();
-
-            const selectColor = (colorArray) => {
-                const availableColors = colorArray.filter(color => !usedColors.has(color));
-                if (availableColors.length === 0) {
-                    const index = parseInt(hashedValue.slice(0, 8), 16) % colorArray.length;
-                    return colorArray[index];
-                }
-                const index = parseInt(hashedValue.slice(0, 8), 16) % availableColors.length;
-                const selectedColor = availableColors[index];
-                usedColors.add(selectedColor);
-                return selectedColor;
-            };
-
-            colors.default = selectColor(terrainColors);
-            colors.center = selectColor(soilColors);
-            colors.corner1 = selectColor(petColors);
-            colors.corner2 = selectColor(vegetationColors);
-            colors.corner3 = selectColor(structureColors);
-            colors.corner4 = selectColor(artifactColors);
-
-            document.getElementById('centerColor').value = colors.center;
-            document.getElementById('corner1Color').value = colors.corner1;
-            document.getElementById('corner2Color').value = colors.corner2;
-            document.getElementById('corner3Color').value = colors.corner3;
-            document.getElementById('corner4Color').value = colors.corner4;
-            document.getElementById('defaultColor').value = colors.default;
-
-            document.getElementById('hashInput').value = seed; // Display seed (wallet + timestamp hash)
-
-            drawGrid(seed);
-            checkColorConflict();
-            checkMapStatus(); // Re-check map status after generating new grid
-        }
-
-        // Draw grid on canvas
-        function drawGrid(seed) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const hashBytes = new Uint8Array(sha256.array(seed));
-            for (let row = 1; row <= gridSize; row++) {
-                for (let col = 1; col <= gridSize; col++) {
-                    let fillColor = colors.default;
-                    if (row === 3 && col === 3) fillColor = colors.center;
-                    else if (row === 2 && col === 2) fillColor = colors.corner1;
-                    else if (row === 2 && col === 4) fillColor = colors.corner2;
-                    else if (row === 4 && col === 2) fillColor = colors.corner3;
-                    else if (row === 4 && col === 4) fillColor = colors.corner4;
-                    ctx.fillStyle = fillColor || '#2F4F4F';
-                    ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
-                    if (hashBytes[(row * 5 + col) % 32] % 3 === 0) {
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.beginPath();
-                        ctx.arc((col - 1) * cellSize + cellSize / 2, (row - 1) * cellSize + cellSize / 2, 5, 0, 2 * Math.PI);
-                        ctx.fill();
-                    }
-                }
-            }
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // Check for color conflicts
-        function checkColorConflict() {
-            const customColors = [colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4];
-            if (customColors.includes(colors.default)) {
-                showStatus('The colors of the 5 special tiles must not match the default color. Please try again!');
-                return false;
-            }
-            const attributes = getAttributes();
-            const uniqueAttributes = new Set(attributes);
-            if (uniqueAttributes.size !== 7) {
-                showStatus('Attributes must not be repeated. Please try again!');
-                return false;
-            }
-            return true;
-        }
-
-        // Get attributes for minting
-        function getAttributes() {
-            const mapName = document.getElementById('mapNameInput').value;
-            const digitCount = mapName.toString().length;
-            const attributes = [
-                colorNames[soilColors.indexOf(colors.center)] + '1',
-                colorNames[petColors.indexOf(colors.corner1) + 40] + '2',
-                colorNames[vegetationColors.indexOf(colors.corner2) + 80] + '3',
-                colorNames[structureColors.indexOf(colors.corner3) + 120] + '4',
-                colorNames[artifactColors.indexOf(colors.corner4) + 160] + '5',
-                colorNames[terrainColors.indexOf(colors.default) + 200] + '6',
-                `${digitCount}D`
-            ];
-            // Ensure all attributes are valid strings
-            return attributes.map(attr => attr || 'Unknown');
-        }
-
-        // Check if attributes are already used
-        async function checkAttributeUniqueness(attributes) {
-            if (!web3 || !accounts) {
-                showStatus('Please connect wallet first.');
-                return false;
-            }
+            const nftList = document.getElementById('nftList');
+            nftList.innerHTML = '<p>Loading your NFTs...</p>';
             try {
-                // Ensure attributes are valid strings
-                const validAttributes = attributes.map(attr => String(attr));
-                const encoded = web3.eth.abi.encodeParameters(['string[]'], [validAttributes]);
-                const attrHash = web3.utils.keccak256(encoded); // Use web3.utils.keccak256
-                const isUsed = await okbMapContract.methods.usedAttributeCombinations(attrHash).call();
-                if (isUsed) {
-                    showStatus('This attribute combination has already been used.');
-                    return false;
+                const tokenIds = await okbMapContract.methods.walletOfOwner(accounts[0]).call();
+                if (tokenIds.length === 0) {
+                    nftList.innerHTML = '<p>You do not own any OKB Map NFTs.</p>';
+                    return;
                 }
-                return true;
+                nftList.innerHTML = '';
+                for (const tokenId of tokenIds) {
+                    const tokenURI = await okbMapContract.methods.tokenURI(tokenId).call();
+                    await displayNFT(tokenId, tokenURI);
+                }
             } catch (error) {
-                showStatus(`Error checking attribute uniqueness: ${error.message}`);
-                return false;
+                nftList.innerHTML = '<p>Failed to load NFTs: ' + error.message + '</p>';
             }
         }
+
+        // Display NFT
+        async function displayNFT(tokenId, tokenURI) {
+            const nftList = document.getElementById('nftList');
+            let metadata;
+            try {
+                if (tokenURI.startsWith('data:application/json;base64,')) {
+                    const base64Data = tokenURI.split(',')[1];
+                    metadata = JSON.parse(atob(base64Data));
+                } else {
+                    metadata = { name: `OKB Map #${tokenId}`, image: 'Unknown' };
+                }
+            } catch (error) {
+                metadata = { name: `OKB Map #${tokenId}`, image: 'Unknown' };
+            }
+            const nftDiv = document.createElement('div');
+            nftDiv.className = 'nft-card';
+            nftDiv.innerHTML = `
+                <img src="${metadata.image}" alt="${metadata.name}">
+                <p>${metadata.name} (ID: ${tokenId})</p>
+            `;
+            nftList.appendChild(nftDiv);
+        }
+
+        // Event listeners
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        window.ethereum?.on('chainChanged', () => window.location.reload());
+        window.ethereum?.on('accountsChanged', (newAccounts) => {
+            accounts = newAccounts;
+            if (newAccounts.length === 0) {
+                showStatus('Not connected');
+                enableInputs(false);
+                stopGridRefresh();
+                document.getElementById('nftList').innerHTML = '<p>Please connect wallet to view NFTs.</p>';
+            } else {
+                connectWallet();
+            }
+        });
 
         // Initialize
-        document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        document.getElementById('hashInput').disabled = true; // Disable hash input
-        // Do not generate grid until wallet is connected
+        window.onload = () => {
+            drawGrid('default');
+            if (!window.ethereum) {
+                showStatus('No wallet detected. Please install MetaMask.');
+            }
+        };
     </script>
 </body>
 </html>
