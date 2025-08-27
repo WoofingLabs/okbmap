@@ -1216,7 +1216,7 @@
             }
         }
 
-                // Preview mint information
+                        // Preview mint information
         async function previewMintInfo() {
             if (!web3 || !accounts) {
                 showStatus('Please connect wallet first.');
@@ -1327,11 +1327,11 @@
             const tokenURI = canvas.toDataURL('image/png');
 
             // Display mint information
-            const hash = document.getElementById('hashInput').value;
+            const seed = document.getElementById('hashInput').value; // Now used as seed (wallet + timestamp)
             const mintInfo = `
                 <strong>Mint Preview:</strong><br>
                 <strong>Map Name (Token ID):</strong> ${mapName}<br>
-                <strong>Hash:</strong> ${hash.slice(0, 6)}...${hash.slice(-4)}<br>
+                <strong>Seed:</strong> ${seed.slice(0, 6)}...${seed.slice(-4)}<br>
                 <strong>Attributes:</strong><br>
                 - Soil Type (3,3): ${attributes[0]}<br>
                 - Guardian Pet (2,2): ${attributes[1]}<br>
@@ -1473,9 +1473,137 @@
             }
         }
 
+        // Generate grid based on wallet address and timestamp
+        function generateGrid() {
+            if (!web3 || !accounts) {
+                showStatus('Please connect wallet to generate grid.');
+                return;
+            }
+            const timestamp = Date.now().toString();
+            const seed = sha256(accounts[0] + timestamp); // Combine wallet address and timestamp
+            const hashedValue = sha256(seed);
+            const usedColors = new Set();
+
+            const selectColor = (colorArray) => {
+                const availableColors = colorArray.filter(color => !usedColors.has(color));
+                if (availableColors.length === 0) {
+                    const index = parseInt(hashedValue.slice(0, 8), 16) % colorArray.length;
+                    return colorArray[index];
+                }
+                const index = parseInt(hashedValue.slice(0, 8), 16) % availableColors.length;
+                const selectedColor = availableColors[index];
+                usedColors.add(selectedColor);
+                return selectedColor;
+            };
+
+            colors.default = selectColor(terrainColors);
+            colors.center = selectColor(soilColors);
+            colors.corner1 = selectColor(petColors);
+            colors.corner2 = selectColor(vegetationColors);
+            colors.corner3 = selectColor(structureColors);
+            colors.corner4 = selectColor(artifactColors);
+
+            document.getElementById('centerColor').value = colors.center;
+            document.getElementById('corner1Color').value = colors.corner1;
+            document.getElementById('corner2Color').value = colors.corner2;
+            document.getElementById('corner3Color').value = colors.corner3;
+            document.getElementById('corner4Color').value = colors.corner4;
+            document.getElementById('defaultColor').value = colors.default;
+
+            document.getElementById('hashInput').value = seed; // Display seed (wallet + timestamp hash)
+
+            drawGrid(seed);
+            checkColorConflict();
+            checkMapStatus(); // Re-check map status after generating new grid
+        }
+
+        // Draw grid on canvas
+        function drawGrid(seed) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const hashBytes = new Uint8Array(sha256.array(seed));
+            for (let row = 1; row <= gridSize; row++) {
+                for (let col = 1; col <= gridSize; col++) {
+                    let fillColor = colors.default;
+                    if (row === 3 && col === 3) fillColor = colors.center;
+                    else if (row === 2 && col === 2) fillColor = colors.corner1;
+                    else if (row === 2 && col === 4) fillColor = colors.corner2;
+                    else if (row === 4 && col === 2) fillColor = colors.corner3;
+                    else if (row === 4 && col === 4) fillColor = colors.corner4;
+                    ctx.fillStyle = fillColor || '#2F4F4F';
+                    ctx.fillRect((col - 1) * cellSize, (row - 1) * cellSize, cellSize, cellSize);
+                    if (hashBytes[(row * 5 + col) % 32] % 3 === 0) {
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.beginPath();
+                        ctx.arc((col - 1) * cellSize + cellSize / 2, (row - 1) * cellSize + cellSize / 2, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Check for color conflicts
+        function checkColorConflict() {
+            const customColors = [colors.center, colors.corner1, colors.corner2, colors.corner3, colors.corner4];
+            if (customColors.includes(colors.default)) {
+                showStatus('The colors of the 5 special tiles must not match the default color. Please try again!');
+                return false;
+            }
+            const attributes = getAttributes();
+            const uniqueAttributes = new Set(attributes);
+            if (uniqueAttributes.size !== 7) {
+                showStatus('Attributes must not be repeated. Please try again!');
+                return false;
+            }
+            return true;
+        }
+
+        // Get attributes for minting
+        function getAttributes() {
+            const mapName = document.getElementById('mapNameInput').value;
+            const digitCount = mapName.toString().length;
+            const attributes = [
+                colorNames[soilColors.indexOf(colors.center)] + '1',
+                colorNames[petColors.indexOf(colors.corner1) + 40] + '2',
+                colorNames[vegetationColors.indexOf(colors.corner2) + 80] + '3',
+                colorNames[structureColors.indexOf(colors.corner3) + 120] + '4',
+                colorNames[artifactColors.indexOf(colors.corner4) + 160] + '5',
+                colorNames[terrainColors.indexOf(colors.default) + 200] + '6',
+                `${digitCount}D`
+            ];
+            // Ensure all attributes are valid strings
+            return attributes.map(attr => attr || 'Unknown');
+        }
+
+        // Check if attributes are already used
+        async function checkAttributeUniqueness(attributes) {
+            if (!web3 || !accounts) {
+                showStatus('Please connect wallet first.');
+                return false;
+            }
+            try {
+                // Ensure attributes are valid strings
+                const validAttributes = attributes.map(attr => String(attr));
+                const encoded = web3.eth.abi.encodeParameters(['string[]'], [validAttributes]);
+                const attrHash = web3.utils.keccak256(encoded); // Use web3.utils.keccak256
+                const isUsed = await okbMapContract.methods.usedAttributeCombinations(attrHash).call();
+                if (isUsed) {
+                    showStatus('This attribute combination has already been used.');
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                showStatus(`Error checking attribute uniqueness: ${error.message}`);
+                return false;
+            }
+        }
+
         // Initialize
         document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        generateGrid(); // Generate initial grid on page load
+        document.getElementById('hashInput').disabled = true; // Disable hash input
+        // Do not generate grid until wallet is connected
     </script>
 </body>
 </html>
