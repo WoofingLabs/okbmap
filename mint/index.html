@@ -951,13 +951,13 @@
             }
             let mapName = document.getElementById('mapNameInput').value;
             if (mapName === '' || isNaN(mapName) || mapName < 0) {
-                // 自动设置为当前区块高度除以 1000
-                const currentBlock = await web3.eth.getBlockNumber();
-                mapName = Math.floor(currentBlock / 1000);
-                document.getElementById('mapNameInput').value = mapName;
-            } else {
-                mapName = parseInt(mapName);
+                document.getElementById('mintCost').innerText = 'Please enter a valid Map Name (0 or greater).';
+                document.getElementById('previewMint').disabled = true;
+                document.getElementById('mintButton').disabled = true;
+                document.getElementById('mintInfo').innerHTML = '';
+                return;
             }
+            mapName = parseInt(mapName);
             try {
                 // 获取铸造费用
                 const cost = await okbMapContract.methods.getMintCost(mapName).call();
@@ -1003,7 +1003,7 @@
 
                 // 更新 UI
                 document.getElementById('mintCost').innerHTML = `Mint Cost: ${costInOKB} OKB${statusMessage}`;
-                document.getElementById('blockStatus').innerText = `Block height: Current ${currentBlock}, Using Map Name: ${mapName}`;
+                document.getElementById('blockStatus').innerText = '';
                 document.getElementById('previewMint').disabled = !canMint;
                 document.getElementById('mintButton').disabled = true;
                 document.getElementById('mintInfo').innerHTML = '';
@@ -1266,12 +1266,12 @@
 
             let mapName = document.getElementById('mapNameInput').value;
             if (mapName === '' || isNaN(mapName) || mapName < 0) {
-                const currentBlock = await web3.eth.getBlockNumber();
-                mapName = Math.floor(currentBlock / 1000);
-                document.getElementById('mapNameInput').value = mapName;
-            } else {
-                mapName = parseInt(mapName);
+                showStatus('Please enter a valid Map Name (0 or greater).');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
             }
+            mapName = parseInt(mapName);
 
             // 检查颜色冲突
             if (!checkColorConflict()) {
@@ -1375,6 +1375,116 @@
 
                         // 显示铸造信息
             const seed = document.getElementById('seedInput').value;
+            let mapName = document.getElementById('mapNameInput').value;
+            if (mapName === '' || isNaN(mapName) || mapName < 0) {
+                showStatus('Please enter a valid Map Name (0 or greater).');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+            mapName = parseInt(mapName);
+
+            // 检查颜色冲突
+            if (!checkColorConflict()) {
+                showStatus('Color conflict detected. Please generate a new grid.');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // 获取属性
+            const attributes = getAttributes();
+            if (attributes.length !== 7) {
+                showStatus('Invalid attributes: Must have exactly 7 attributes.');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // 检查属性唯一性
+            const isUnique = await checkAttributeUniqueness(attributes);
+            if (!isUnique) {
+                showStatus('Attribute combination already used. Please generate a new grid.');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // 获取铸造费用
+            let costInOKB;
+            try {
+                const cost = await okbMapContract.methods.getMintCost(mapName).call();
+                costInOKB = web3.utils.fromWei(cost, 'ether');
+            } catch (error) {
+                showStatus(`Error fetching mint cost: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // 检查余额
+            let balanceInOKB;
+            try {
+                const balance = await web3.eth.getBalance(accounts[0]);
+                balanceInOKB = web3.utils.fromWei(balance, 'ether');
+                if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
+                    showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+            } catch (error) {
+                showStatus(`Error fetching balance: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // 检查 mapName 是否已铸造
+            try {
+                const owner = await okbMapContract.methods.ownerOf(mapName).call();
+                showStatus(`Map Name ${mapName} is already minted by <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>.`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            } catch (error) {
+                if (!error.message.includes('nonexistent')) {
+                    showStatus(`Error checking map status: ${error.message}`);
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+            }
+
+            // 生成 token URI
+            let totalSupply;
+            try {
+                totalSupply = await okbMapContract.methods.totalSupply().call();
+            } catch (error) {
+                showStatus(`Error fetching total supply: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            const imageData = canvas.toDataURL('image/png').split(',')[1];
+            const metadata = {
+                name: `OKB Map #${parseInt(totalSupply) + 1}`,
+                description: 'A unique 5x5 grid NFT with customizable attributes on OKB Map - TerraVerse',
+                image: `data:image/png;base64,${imageData}`,
+                attributes: [
+                    { trait_type: 'Soil Type (3,3)', value: colorNames[soilColors.indexOf(colors.center)] },
+                    { trait_type: 'Guardian Pet (2,2)', value: colorNames[petColors.indexOf(colors.corner1) + 40] },
+                    { trait_type: 'Vegetation Type (2,4)', value: colorNames[vegetationColors.indexOf(colors.corner2) + 80] },
+                    { trait_type: 'Structure Type (4,2)', value: colorNames[structureColors.indexOf(colors.corner3) + 120] },
+                    { trait_type: 'Mystic Artifact (4,4)', value: colorNames[artifactColors.indexOf(colors.corner4) + 160] },
+                    { trait_type: 'Terrain Feature', value: colorNames[terrainColors.indexOf(colors.default) + 200] },
+                    { trait_type: 'Map Name Length', value: `${mapName.toString().length}D` }
+                ]
+            };
+            const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+
+            // 显示铸造信息
             const mintInfo = `
                 <strong>Mint Preview:</strong><br>
                 <strong>Map Name (Token ID):</strong> ${mapName}<br>
@@ -1388,8 +1498,6 @@
                 - Terrain Feature: ${attributes[5]}<br>
                 - Map Name Length: ${attributes[6]}<br>
                 <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
-                <strong>Current Block:</strong> ${await web3.eth.getBlockNumber()}<br>
-                <strong>Using Map Name:</strong> ${mapName}<br>
                 <strong>Image Preview:</strong><br>
                 <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
             `;
@@ -1408,12 +1516,11 @@
 
             let mapName = document.getElementById('mapNameInput').value;
             if (mapName === '' || isNaN(mapName) || mapName < 0) {
-                const currentBlock = await web3.eth.getBlockNumber();
-                mapName = Math.floor(currentBlock / 1000);
-                document.getElementById('mapNameInput').value = mapName;
-            } else {
-                mapName = parseInt(mapName);
+                showStatus('Please enter a valid Map Name (0 or greater).');
+                document.getElementById('mintButton').disabled = true;
+                return;
             }
+            mapName = parseInt(mapName);
 
             // 禁用按钮以防止重复铸造
             document.getElementById('mintButton').disabled = true;
