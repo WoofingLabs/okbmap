@@ -1266,7 +1266,7 @@
             }
         }
 
-                // Preview mint information
+                        // Preview mint information
         async function previewMintInfo() {
             if (!web3 || !accounts) {
                 showStatus('Please connect wallet first.');
@@ -1286,6 +1286,7 @@
 
             // Check color conflict
             if (!checkColorConflict()) {
+                showStatus('Color conflict detected. Please generate a new grid.');
                 document.getElementById('mintInfo').innerHTML = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
@@ -1294,7 +1295,7 @@
             // Get attributes
             const attributes = getAttributes();
             if (attributes.length !== 7) {
-                showStatus('Invalid number of attributes. Must be exactly 7.');
+                showStatus('Invalid attributes: Must have exactly 7 attributes.');
                 document.getElementById('mintInfo').innerHTML = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
@@ -1303,6 +1304,7 @@
             // Check attribute uniqueness
             const isUnique = await checkAttributeUniqueness(attributes);
             if (!isUnique) {
+                showStatus('Attribute combination already used. Please generate a new grid.');
                 document.getElementById('mintInfo').innerHTML = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
@@ -1359,8 +1361,8 @@
 
             // Check if mapName is already minted
             try {
-                await okbMapContract.methods.ownerOf(mapName).call();
-                showStatus(`Map Name ${mapName} is already minted.`);
+                const owner = await okbMapContract.methods.ownerOf(mapName).call();
+                showStatus(`Map Name ${mapName} is already minted by <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>.`);
                 document.getElementById('mintInfo').innerHTML = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
@@ -1374,7 +1376,16 @@
             }
 
             // Generate token URI
-            const totalSupply = await okbMapContract.methods.totalSupply().call();
+            let totalSupply;
+            try {
+                totalSupply = await okbMapContract.methods.totalSupply().call();
+            } catch (error) {
+                showStatus(`Error fetching total supply: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
             const imageData = canvas.toDataURL('image/png').split(',')[1];
             const metadata = {
                 name: `OKB Map #${parseInt(totalSupply) + 1}`,
@@ -1409,11 +1420,11 @@
                 <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
                 <strong>Current Block:</strong> ${currentBlock}<br>
                 <strong>Image Preview:</strong><br>
-                <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1bfa0 1px solid #444444; border-radius: 4px; margin-top: 5px;">
+                <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
             `;
             document.getElementById('mintInfo').innerHTML = mintInfo;
             document.getElementById('mintButton').disabled = false;
-            showStatus('Please review the mint information and click "Confirm Mint" to proceed.');
+            showStatus('Mint conditions met! Review the information and click "Confirm Mint" to proceed.');
         }
 
         // Mint NFT
@@ -1432,29 +1443,43 @@
             }
             const mapName = parseInt(mapNameInput);
 
+            // Disable button during minting
+            document.getElementById('mintButton').disabled = true;
+            stopGridRefresh(); // Pause auto-refresh during minting
+
             // Check color conflict
             if (!checkColorConflict()) {
-                document.getElementById('mintButton').disabled = true;
+                showStatus('Color conflict detected. Please generate a new grid.');
+                startGridRefresh();
                 return;
             }
 
             // Get attributes
             const attributes = getAttributes();
             if (attributes.length !== 7) {
-                showStatus('Invalid number of attributes. Must be exactly 7.');
-                document.getElementById('mintButton').disabled = true;
+                showStatus('Invalid attributes: Must have exactly 7 attributes.');
+                startGridRefresh();
                 return;
             }
 
             // Check attribute uniqueness
             const isUnique = await checkAttributeUniqueness(attributes);
             if (!isUnique) {
-                document.getElementById('mintButton').disabled = true;
+                showStatus('Attribute combination already used. Please generate a new grid.');
+                startGridRefresh();
                 return;
             }
 
             // Generate token URI
-            const totalSupply = await okbMapContract.methods.totalSupply().call();
+            let totalSupply;
+            try {
+                totalSupply = await okbMapContract.methods.totalSupply().call();
+            } catch (error) {
+                showStatus(`Error fetching total supply: ${error.message}`);
+                startGridRefresh();
+                return;
+            }
+
             const imageData = canvas.toDataURL('image/png').split(',')[1];
             const metadata = {
                 name: `OKB Map #${parseInt(totalSupply) + 1}`,
@@ -1482,7 +1507,7 @@
                 const balanceInOKB = web3.utils.fromWei(balance, 'ether');
                 if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
                     showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
-                    document.getElementById('mintButton').disabled = true;
+                    startGridRefresh();
                     return;
                 }
 
@@ -1492,20 +1517,20 @@
                 const blockStart = mapInfo.blockStart;
                 if (currentBlock < blockStart) {
                     showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`);
-                    document.getElementById('mintButton').disabled = true;
+                    startGridRefresh();
                     return;
                 }
 
                 // Check if mapName is already minted
                 try {
-                    await okbMapContract.methods.ownerOf(mapName).call();
-                    showStatus(`Map Name ${mapName} is already minted.`);
-                    document.getElementById('mintButton').disabled = true;
+                    const owner = await okbMapContract.methods.ownerOf(mapName).call();
+                    showStatus(`Map Name ${mapName} is already minted by <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>.`);
+                    startGridRefresh();
                     return;
                 } catch (error) {
                     if (!error.message.includes('nonexistent')) {
                         showStatus(`Error checking map status: ${error.message}`);
-                        document.getElementById('mintButton').disabled = true;
+                        startGridRefresh();
                         return;
                     }
                 }
@@ -1519,7 +1544,7 @@
                     });
                 } catch (error) {
                     showStatus(`Gas estimation failed: ${error.message}`);
-                    document.getElementById('mintButton').disabled = true;
+                    startGridRefresh();
                     return;
                 }
 
@@ -1528,16 +1553,16 @@
                 const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
                     from: accounts[0],
                     value: cost,
-                    gas: Math.floor(gas * 1.2)
+                    gas: Math.floor(gas * 1.2) // Add 20% gas buffer
                 });
 
                 // Success
                 showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
                 document.getElementById('mintInfo').innerHTML = '';
-                document.getElementById('mintButton').disabled = true;
                 checkMapStatus();
                 updateOKBBalance();
                 fetchOwnedNFTs();
+                startGridRefresh();
             } catch (error) {
                 let errorMessage = 'Mint failed: ';
                 if (error.message.includes('insufficient funds')) {
@@ -1552,7 +1577,7 @@
                     errorMessage += error.message;
                 }
                 showStatus(errorMessage);
-                document.getElementById('mintButton').disabled = true;
+                startGridRefresh();
             }
         }
 
@@ -1560,6 +1585,7 @@
         async function fetchOwnedNFTs() {
             if (!web3 || !okbMapContract || !accounts) {
                 showStatus('Please connect wallet to view NFTs.');
+                document.getElementById('nftList').innerHTML = '<p>Please connect wallet to view NFTs.</p>';
                 return;
             }
             const nftList = document.getElementById('nftList');
@@ -1577,6 +1603,7 @@
                 }
             } catch (error) {
                 nftList.innerHTML = '<p>Failed to load NFTs: ' + error.message + '</p>';
+                showStatus(`Error loading NFTs: ${error.message}`);
             }
         }
 
