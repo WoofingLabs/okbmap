@@ -1266,7 +1266,7 @@
             }
         }
 
-                        // Preview mint information
+                    // Preview mint information
         async function previewMintInfo() {
             if (!web3 || !accounts) {
                 showStatus('Please connect wallet first.');
@@ -1341,13 +1341,14 @@
             }
 
             // Check block height
-            let currentBlock, blockStart;
+            let currentBlock, blockStart, suggestedMapName;
             try {
                 const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
                 currentBlock = await web3.eth.getBlockNumber();
                 blockStart = mapInfo.blockStart;
+                suggestedMapName = Math.floor(currentBlock / 1000);
                 if (currentBlock < blockStart) {
-                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`);
+                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
                     document.getElementById('mintInfo').innerHTML = '';
                     document.getElementById('mintButton').disabled = true;
                     return;
@@ -1515,8 +1516,9 @@
                 const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
                 const currentBlock = await web3.eth.getBlockNumber();
                 const blockStart = mapInfo.blockStart;
+                const suggestedMapName = Math.floor(currentBlock / 1000);
                 if (currentBlock < blockStart) {
-                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`);
+                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
                     startGridRefresh();
                     return;
                 }
@@ -1568,7 +1570,7 @@
                 if (error.message.includes('insufficient funds')) {
                     errorMessage += 'Insufficient OKB for transaction or gas.';
                 } else if (error.message.includes('Invalid block height')) {
-                    errorMessage += `Block height is invalid for Map Name ${mapName}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`;
+                    errorMessage += `Invalid block height for Map Name ${mapName}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`;
                 } else if (error.message.includes('Attribute combination already used')) {
                     errorMessage += 'This attribute combination has already been used.';
                 } else if (error.message.includes('Map already minted')) {
