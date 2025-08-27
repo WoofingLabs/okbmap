@@ -1340,24 +1340,30 @@
                 return;
             }
 
-            // Check block height
+            // Check block height (skip for mapName >= 29990)
             let currentBlock, blockStart, suggestedMapName;
-            try {
-                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
-                currentBlock = await web3.eth.getBlockNumber();
-                blockStart = mapInfo.blockStart;
-                suggestedMapName = Math.floor(currentBlock / 1000);
-                if (currentBlock < blockStart) {
-                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
+            if (mapName < 29990) {
+                try {
+                    const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
+                    currentBlock = await web3.eth.getBlockNumber();
+                    blockStart = mapInfo.blockStart;
+                    suggestedMapName = Math.floor(currentBlock / 1000);
+                    if (currentBlock < blockStart) {
+                        showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
+                        document.getElementById('mintInfo').innerHTML = '';
+                        document.getElementById('mintButton').disabled = true;
+                        return;
+                    }
+                } catch (error) {
+                    showStatus(`Error checking block height: ${error.message}`);
                     document.getElementById('mintInfo').innerHTML = '';
                     document.getElementById('mintButton').disabled = true;
                     return;
                 }
-            } catch (error) {
-                showStatus(`Error checking block height: ${error.message}`);
-                document.getElementById('mintInfo').innerHTML = '';
-                document.getElementById('mintButton').disabled = true;
-                return;
+            } else {
+                currentBlock = await web3.eth.getBlockNumber();
+                blockStart = 'N/A (Free mint)';
+                suggestedMapName = 'N/A';
             }
 
             // Check if mapName is already minted
@@ -1420,6 +1426,7 @@
                 - Map Name Length: ${attributes[6]}<br>
                 <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
                 <strong>Current Block:</strong> ${currentBlock}<br>
+                <strong>Block Requirement:</strong> ${blockStart}<br>
                 <strong>Image Preview:</strong><br>
                 <img src="${canvas.toDataURL('image/png')}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
             `;
@@ -1512,17 +1519,6 @@
                     return;
                 }
 
-                // Check block height
-                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
-                const currentBlock = await web3.eth.getBlockNumber();
-                const blockStart = mapInfo.blockStart;
-                const suggestedMapName = Math.floor(currentBlock / 1000);
-                if (currentBlock < blockStart) {
-                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`);
-                    startGridRefresh();
-                    return;
-                }
-
                 // Check if mapName is already minted
                 try {
                     const owner = await okbMapContract.methods.ownerOf(mapName).call();
@@ -1569,8 +1565,6 @@
                 let errorMessage = 'Mint failed: ';
                 if (error.message.includes('insufficient funds')) {
                     errorMessage += 'Insufficient OKB for transaction or gas.';
-                } else if (error.message.includes('Invalid block height')) {
-                    errorMessage += `Invalid block height for Map Name ${mapName}. Suggested Map Name: <= ${suggestedMapName} or 29990 (free).`;
                 } else if (error.message.includes('Attribute combination already used')) {
                     errorMessage += 'This attribute combination has already been used.';
                 } else if (error.message.includes('Map already minted')) {
