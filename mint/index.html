@@ -120,6 +120,14 @@
         .status a:hover {
             text-decoration: underline;
         }
+        .mint-info {
+            margin-top: 10px;
+            font-size: 14px;
+            text-align: left;
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -410,6 +418,7 @@
             <div class="action-buttons">
                 <button onclick="generateGrid()">Random Hash</button>
                 <button onclick="downloadGrid()">Download Image</button>
+                <button id="previewMint" onclick="previewMintInfo()" disabled>Preview Mint</button>
             </div>
             <div class="mint-section">
                 <label for="mapNameInput">Enter Map Name (Token ID)</label>
@@ -417,7 +426,8 @@
                 <div id="mintCost" class="status"></div>
                 <div id="okbBalance" class="status"></div>
                 <div id="blockStatus" class="status"></div>
-                <button id="mintButton" onclick="mintNFT()" disabled>Mint NFT</button>
+                <div id="mintInfo" class="mint-info"></div>
+                <button id="mintButton" onclick="mintNFT()" disabled>Confirm Mint</button>
             </div>
             <div id="transactionStatus" class="status"></div>
         </div>
@@ -873,7 +883,8 @@
         // Enable or disable inputs
         function enableInputs(enabled) {
             document.getElementById('mapNameInput').disabled = !enabled;
-            document.getElementById('mintButton').disabled = !enabled;
+            document.getElementById('previewMint').disabled = !enabled;
+            document.getElementById('mintButton').disabled = true; // Confirm Mint button initially disabled
         }
 
         // Update OKB balance
@@ -898,14 +909,18 @@
             if (!web3 || !accounts) {
                 document.getElementById('mintCost').innerText = 'Please connect wallet first.';
                 document.getElementById('blockStatus').innerText = '';
+                document.getElementById('previewMint').disabled = true;
                 document.getElementById('mintButton').disabled = true;
+                document.getElementById('mintInfo').innerHTML = '';
                 return;
             }
             const mapName = document.getElementById('mapNameInput').value;
             if (mapName === '' || isNaN(mapName) || mapName < 0) {
                 document.getElementById('mintCost').innerText = 'Please enter a valid Map Name (0 or greater).';
                 document.getElementById('blockStatus').innerText = '';
+                document.getElementById('previewMint').disabled = true;
                 document.getElementById('mintButton').disabled = true;
+                document.getElementById('mintInfo').innerHTML = '';
                 return;
             }
             try {
@@ -917,11 +932,12 @@
                 // Check OKB balance
                 const balance = await web3.eth.getBalance(accounts[0]);
                 const balanceInOKB = web3.utils.fromWei(balance, 'ether');
+                let statusMessage = '';
+                let canMint = true;
+
                 if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
-                    document.getElementById('mintCost').innerHTML += `<br>Insufficient OKB balance. Required: ${costInOKB} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`;
-                    document.getElementById('mintButton').disabled = true;
-                } else {
-                    document.getElementById('mintButton').disabled = false;
+                    statusMessage += `<br>Insufficient OKB balance. Required: ${costInOKB} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`;
+                    canMint = false;
                 }
 
                 // Check block height
@@ -929,11 +945,12 @@
                 const currentBlock = await web3.eth.getBlockNumber();
                 const blockStart = mapInfo.blockStart;
                 const blockEnd = mapInfo.blockEnd;
-                if (currentBlock < blockStart || currentBlock >= blockEnd) {
-                    document.getElementById('blockStatus').innerText = `Invalid block height for Map Name ${mapName}. Required: ${blockStart} to ${blockEnd - 1}, Current: ${currentBlock}`;
-                    document.getElementById('mintButton').disabled = true;
+                if (currentBlock < blockStart) {
+                    statusMessage += `<br>Invalid block height for Map Name ${mapName}. Current block (${currentBlock}) is too low. Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`;
+                    document.getElementById('blockStatus').innerText = `Invalid block height. Current: ${currentBlock}, Required: >= ${blockStart}`;
+                    canMint = false;
                 } else {
-                    document.getElementById('blockStatus').innerText = `Block height valid: ${blockStart} to ${blockEnd - 1}, Current: ${currentBlock}`;
+                    document.getElementById('blockStatus').innerText = `Block height valid: Current ${currentBlock}, Required: >= ${blockStart}`;
                 }
 
                 // Check if mapName is already minted
@@ -945,22 +962,34 @@
                         toBlock: 'latest'
                     });
                     const blockNumber = events.length > 0 ? events[0].blockNumber : 'Unknown';
-                    document.getElementById('mintCost').innerHTML += `<br>Map Name ${mapName} is already minted. Owner: <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>, Block Number: ${blockNumber}`;
-                    document.getElementById('mintButton').disabled = true;
+                    statusMessage += `<br>Map Name ${mapName} is already minted. Owner: <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>, Block Number: ${blockNumber}`;
+                    canMint = false;
                 } catch (error) {
-                    if (error.message.includes('nonexistent')) {
-                        if (parseFloat(balanceInOKB) >= parseFloat(costInOKB) && currentBlock >= blockStart && currentBlock < blockEnd) {
-                            document.getElementById('mintButton').disabled = false;
-                        }
-                    } else {
-                        document.getElementById('mintCost').innerText = `Error checking map status: ${error.message}`;
-                        document.getElementById('mintButton').disabled = true;
+                    if (!error.message.includes('nonexistent')) {
+                        statusMessage += `<br>Error checking map status: ${error.message}`;
+                        canMint = false;
                     }
                 }
+
+                // Check attribute uniqueness
+                const attributes = getAttributes();
+                const isUnique = await checkAttributeUniqueness(attributes);
+                if (!isUnique) {
+                    statusMessage += `<br>Attribute combination already used. Please generate a new hash.`;
+                    canMint = false;
+                }
+
+                // Update UI
+                document.getElementById('mintCost').innerHTML = `Mint Cost: ${costInOKB} OKB${statusMessage}`;
+                document.getElementById('previewMint').disabled = !canMint;
+                document.getElementById('mintButton').disabled = true; // Confirm Mint button enabled only after preview
+                document.getElementById('mintInfo').innerHTML = '';
             } catch (error) {
                 document.getElementById('mintCost').innerText = `Error fetching cost: ${error.message}`;
                 document.getElementById('blockStatus').innerText = '';
+                document.getElementById('previewMint').disabled = true;
                 document.getElementById('mintButton').disabled = true;
+                document.getElementById('mintInfo').innerHTML = '';
             }
         }
 
@@ -1097,6 +1126,7 @@
 
             drawGrid(hash);
             checkColorConflict();
+            checkMapStatus(); // Re-check map status after generating new grid
         }
 
         // Draw grid on canvas
@@ -1186,118 +1216,266 @@
             }
         }
 
-     // Mint NFT
-async function mintNFT() {
-    if (!web3 || !accounts) {
-        showStatus('Please connect wallet first.');
-        return;
-    }
-
-    const mapNameInput = document.getElementById('mapNameInput').value;
-    if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
-        showStatus('Please enter a valid Map Name (0 or greater).');
-        return;
-    }
-    const mapName = parseInt(mapNameInput);
-
-    // Check color conflict
-    if (!checkColorConflict()) {
-        return;
-    }
-
-    // Get attributes
-    const attributes = getAttributes();
-    if (attributes.length !== 7) {
-        showStatus('Invalid number of attributes. Must be exactly 7.');
-        return;
-    }
-
-    // Check attribute uniqueness
-    const isUnique = await checkAttributeUniqueness(attributes);
-    if (!isUnique) {
-        return;
-    }
-
-    // Generate token URI (using canvas image)
-    const tokenURI = canvas.toDataURL('image/png');
-
-    try {
-        // Get mint cost
-        const cost = await okbMapContract.methods.getMintCost(mapName).call();
-        const costInOKB = web3.utils.fromWei(cost, 'ether');
-
-        // Check OKB balance
-        const balance = await web3.eth.getBalance(accounts[0]);
-        const balanceInOKB = web3.utils.fromWei(balance, 'ether');
-        if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
-            showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
-            return;
-        }
-
-        // Check block height
-        const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
-        const currentBlock = await web3.eth.getBlockNumber();
-        if (currentBlock < mapInfo.blockStart || currentBlock >= mapInfo.blockEnd) {
-            showStatus(`Invalid block height for Map Name ${mapName}. Required: ${mapInfo.blockStart} to ${mapInfo.blockEnd - 1}, Current: ${currentBlock}`);
-            return;
-        }
-
-        // Check if mapName is already minted
-        try {
-            await okbMapContract.methods.ownerOf(mapName).call();
-            showStatus(`Map Name ${mapName} is already minted.`);
-            return;
-        } catch (error) {
-            if (!error.message.includes('nonexistent')) {
-                showStatus(`Error checking map status: ${error.message}`);
+                // Preview mint information
+        async function previewMintInfo() {
+            if (!web3 || !accounts) {
+                showStatus('Please connect wallet first.');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
                 return;
+            }
+
+            const mapNameInput = document.getElementById('mapNameInput').value;
+            if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
+                showStatus('Please enter a valid Map Name (0 or greater).');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+            const mapName = parseInt(mapNameInput);
+
+            // Check color conflict
+            if (!checkColorConflict()) {
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Get attributes
+            const attributes = getAttributes();
+            if (attributes.length !== 7) {
+                showStatus('Invalid number of attributes. Must be exactly 7.');
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Check attribute uniqueness
+            const isUnique = await checkAttributeUniqueness(attributes);
+            if (!isUnique) {
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Get mint cost
+            let costInOKB;
+            try {
+                const cost = await okbMapContract.methods.getMintCost(mapName).call();
+                costInOKB = web3.utils.fromWei(cost, 'ether');
+            } catch (error) {
+                showStatus(`Error fetching mint cost: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Check OKB balance
+            let balanceInOKB;
+            try {
+                const balance = await web3.eth.getBalance(accounts[0]);
+                balanceInOKB = web3.utils.fromWei(balance, 'ether');
+                if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
+                    showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+            } catch (error) {
+                showStatus(`Error fetching balance: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Check block height
+            let currentBlock, blockStart;
+            try {
+                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
+                currentBlock = await web3.eth.getBlockNumber();
+                blockStart = mapInfo.blockStart;
+                if (currentBlock < blockStart) {
+                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`);
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+            } catch (error) {
+                showStatus(`Error checking block height: ${error.message}`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Check if mapName is already minted
+            try {
+                await okbMapContract.methods.ownerOf(mapName).call();
+                showStatus(`Map Name ${mapName} is already minted.`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            } catch (error) {
+                if (!error.message.includes('nonexistent')) {
+                    showStatus(`Error checking map status: ${error.message}`);
+                    document.getElementById('mintInfo').innerHTML = '';
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+            }
+
+            // Generate token URI
+            const tokenURI = canvas.toDataURL('image/png');
+
+            // Display mint information
+            const hash = document.getElementById('hashInput').value;
+            const mintInfo = `
+                <strong>Mint Preview:</strong><br>
+                <strong>Map Name (Token ID):</strong> ${mapName}<br>
+                <strong>Hash:</strong> ${hash.slice(0, 6)}...${hash.slice(-4)}<br>
+                <strong>Attributes:</strong><br>
+                - Soil Type (3,3): ${attributes[0]}<br>
+                - Guardian Pet (2,2): ${attributes[1]}<br>
+                - Vegetation Type (2,4): ${attributes[2]}<br>
+                - Structure Type (4,2): ${attributes[3]}<br>
+                - Mystic Artifact (4,4): ${attributes[4]}<br>
+                - Terrain Feature: ${attributes[5]}<br>
+                - Map Name Length: ${attributes[6]}<br>
+                <strong>Mint Cost:</strong> ${parseFloat(costInOKB).toFixed(4)} OKB<br>
+                <strong>Current Block:</strong> ${currentBlock}<br>
+                <strong>Image Preview:</strong><br>
+                <img src="${tokenURI}" style="width: 100px; height: 100px; border: 1px solid #444444; border-radius: 4px; margin-top: 5px;">
+            `;
+            document.getElementById('mintInfo').innerHTML = mintInfo;
+            document.getElementById('mintButton').disabled = false; // Enable Confirm Mint button
+            showStatus('Please review the mint information and click "Confirm Mint" to proceed.');
+        }
+
+        // Mint NFT
+        async function mintNFT() {
+            if (!web3 || !accounts) {
+                showStatus('Please connect wallet first.');
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            const mapNameInput = document.getElementById('mapNameInput').value;
+            if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
+                showStatus('Please enter a valid Map Name (0 or greater).');
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+            const mapName = parseInt(mapNameInput);
+
+            // Check color conflict
+            if (!checkColorConflict()) {
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Get attributes
+            const attributes = getAttributes();
+            if (attributes.length !== 7) {
+                showStatus('Invalid number of attributes. Must be exactly 7.');
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Check attribute uniqueness
+            const isUnique = await checkAttributeUniqueness(attributes);
+            if (!isUnique) {
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+
+            // Generate token URI
+            const tokenURI = canvas.toDataURL('image/png');
+
+            try {
+                // Get mint cost
+                const cost = await okbMapContract.methods.getMintCost(mapName).call();
+                const costInOKB = web3.utils.fromWei(cost, 'ether');
+
+                // Check OKB balance
+                const balance = await web3.eth.getBalance(accounts[0]);
+                const balanceInOKB = web3.utils.fromWei(balance, 'ether');
+                if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
+                    showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+
+                // Check block height
+                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
+                const currentBlock = await web3.eth.getBlockNumber();
+                const blockStart = mapInfo.blockStart;
+                if (currentBlock < blockStart) {
+                    showStatus(`Invalid block height for Map Name ${mapName}. Current: ${currentBlock}, Required: >= ${blockStart}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`);
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+
+                // Check if mapName is already minted
+                try {
+                    await okbMapContract.methods.ownerOf(mapName).call();
+                    showStatus(`Map Name ${mapName} is already minted.`);
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                } catch (error) {
+                    if (!error.message.includes('nonexistent')) {
+                        showStatus(`Error checking map status: ${error.message}`);
+                        document.getElementById('mintButton').disabled = true;
+                        return;
+                    }
+                }
+
+                // Estimate gas
+                let gas;
+                try {
+                    gas = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).estimateGas({
+                        from: accounts[0],
+                        value: cost
+                    });
+                } catch (error) {
+                    showStatus(`Gas estimation failed: ${error.message}`);
+                    document.getElementById('mintButton').disabled = true;
+                    return;
+                }
+
+                // Send transaction
+                showStatus('Minting in progress...');
+                const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
+                    from: accounts[0],
+                    value: cost,
+                    gas: Math.floor(gas * 1.2) // Add 20% buffer to gas limit
+                });
+
+                // Success
+                showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
+                document.getElementById('mintInfo').innerHTML = '';
+                document.getElementById('mintButton').disabled = true;
+                checkMapStatus();
+                updateOKBBalance();
+            } catch (error) {
+                let errorMessage = 'Mint failed: ';
+                if (error.message.includes('insufficient funds')) {
+                    errorMessage += 'Insufficient OKB for transaction or gas.';
+                } else if (error.message.includes('Invalid block height')) {
+                    errorMessage += `Block height is invalid for Map Name ${mapName}. Try Map Name >= ${Math.floor(currentBlock / 1000)}.`;
+                } else if (error.message.includes('Attribute combination already used')) {
+                    errorMessage += 'This attribute combination has already been used.';
+                } else if (error.message.includes('Map already minted')) {
+                    errorMessage += `Map Name ${mapName} is already minted.`;
+                } else {
+                    errorMessage += error.message;
+                }
+                showStatus(errorMessage);
+                document.getElementById('mintButton').disabled = true;
             }
         }
 
-        // Estimate gas
-        let gas;
-        try {
-            gas = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).estimateGas({
-                from: accounts[0],
-                value: cost
-            });
-        } catch (error) {
-            showStatus(`Gas estimation failed: ${error.message}`);
-            return;
-        }
-
-        // Send transaction
-        showStatus('Minting in progress...');
-        const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
-            from: accounts[0],
-            value: cost,
-            gas: Math.floor(gas * 1.2) // Add 20% buffer to gas limit
-        });
-
-        // Success
-        showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
-        checkMapStatus();
-        updateOKBBalance();
-    } catch (error) {
-        let errorMessage = 'Mint failed: ';
-        if (error.message.includes('Insufficient funds')) {
-            errorMessage += 'Insufficient OKB for transaction or gas.';
-        } else if (error.message.includes('Invalid block height')) {
-            errorMessage += 'Block height is invalid for this Map Name.';
-        } else if (error.message.includes('Attribute combination already used')) {
-            errorMessage += 'This attribute combination has already been used.';
-        } else if (error.message.includes('Map already minted')) {
-            errorMessage += `Map Name ${mapName} is already minted.`;
-        } else {
-            errorMessage += error.message;
-        }
-        showStatus(errorMessage);
-    }
-}
-
-// Initialize
-document.getElementById('connectWallet').addEventListener('click', connectWallet);
-generateGrid(); // Generate initial grid on page load
+        // Initialize
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        generateGrid(); // Generate initial grid on page load
     </script>
 </body>
 </html>
