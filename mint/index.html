@@ -131,7 +131,7 @@
                 <div id="walletStatus" class="status">Not connected</div>
             </div>
             <div class="control-group">
-                <label for="hashInput">Enter Hash</label>
+                <label for="hashInput">Enter Hash (for testing)</label>
                 <input type="text" id="hashInput" placeholder="Enter hash or leave blank for random" onkeypress="if(event.key === 'Enter') generateGrid()">
             </div>
             <canvas id="gridCanvas" width="300" height="300"></canvas>
@@ -413,7 +413,7 @@
             </div>
             <div class="mint-section">
                 <label for="tokenIdInput">Enter Token ID</label>
-                <input type="number" id="tokenIdInput" placeholder="Enter Token ID" oninput="fetchMintCost()">
+                <input type="number" id="tokenIdInput" placeholder="Enter Token ID" oninput="checkTokenStatus()">
                 <div id="mintCost" class="status"></div>
                 <button id="mintButton" onclick="mintNFT()" disabled>Mint NFT</button>
             </div>
@@ -801,7 +801,7 @@
                 okbMapContract = new web3.eth.Contract(contractABI, contractAddress);
                 document.getElementById('walletStatus').innerText = `Connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
                 enableInputs(true);
-                fetchMintCost();
+                checkTokenStatus();
             } catch (error) {
                 showStatus('Failed to connect: ' + error.message);
             }
@@ -812,17 +812,52 @@
             document.getElementById('mintButton').disabled = !enabled;
         }
 
-        // Fetch mint cost from contract
-        async function fetchMintCost() {
+        // Check token status and mint cost
+        async function checkTokenStatus() {
             if (!web3 || !accounts) {
                 document.getElementById('mintCost').innerText = 'Please connect wallet first.';
+                document.getElementById('mintButton').disabled = true;
+                return;
+            }
+            const tokenId = document.getElementById('tokenIdInput').value;
+            if (!tokenId || tokenId <= 0) {
+                document.getElementById('mintCost').innerText = 'Please enter a valid Token ID (1 or greater).';
+                document.getElementById('mintButton').disabled = true;
                 return;
             }
             try {
-                const cost = await okbMapContract.methods.cost().call();
+                // Try to fetch mint cost with getMintCost, fallback to cost
+                let cost;
+                try {
+                    cost = await okbMapContract.methods.getMintCost(tokenId).call();
+                } catch (error) {
+                    cost = await okbMapContract.methods.cost().call();
+                }
                 document.getElementById('mintCost').innerText = `Mint Cost: ${web3.utils.fromWei(cost, 'ether')} ETH`;
+
+                // Check if tokenId is already minted
+                try {
+                    const owner = await okbMapContract.methods.ownerOf(tokenId).call();
+                    const events = await okbMapContract.getPastEvents('Transfer', {
+                        filter: { tokenId: tokenId, from: '0x0000000000000000000000000000000000000000' },
+                        fromBlock: 0,
+                        toBlock: 'latest'
+                    });
+                    const blockNumber = events.length > 0 ? events[0].blockNumber : 'Unknown';
+                    document.getElementById('mintCost').innerHTML += `<br>Token ID ${tokenId} is already minted. Owner: <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>, Block Number: ${blockNumber}`;
+                    document.getElementById('mintButton').disabled = true;
+                } catch (error) {
+                    if (error.message.includes('nonexistent token')) {
+                        document.getElementById('mintButton').disabled = false;
+                        document.getElementById('mintCost').innerHTML = `Mint Cost: ${web3.utils.fromWei(cost, 'ether')} ETH<br>Token ID ${tokenId} is available for minting.`;
+                    } else {
+                        document.getElementById('mintCost').innerText = 'Error checking token status: ' + error.message;
+                        document.getElementById('mintButton').disabled = true;
+                    }
+                }
             } catch (error) {
                 document.getElementById('mintCost').innerText = 'Error fetching cost: ' + error.message;
+                document.getElementById('mintButton').disabled = true;
             }
         }
 
@@ -1016,6 +1051,7 @@
         // Get attributes for minting
         function getAttributes() {
             const tokenId = document.getElementById('tokenIdInput').value;
+            const digitCount = tokenId.toString().length;
             return [
                 colorNames[soilColors.indexOf(colors.center)] + '1',
                 colorNames[petColors.indexOf(colors.corner1) + 40] + '2',
@@ -1023,7 +1059,7 @@
                 colorNames[structureColors.indexOf(colors.corner3) + 120] + '4',
                 colorNames[artifactColors.indexOf(colors.corner4) + 160] + '5',
                 colorNames[terrainColors.indexOf(colors.default) + 200] + '6',
-                `${tokenId}D` + '7'
+                `${digitCount}D`
             ];
         }
 
@@ -1054,8 +1090,8 @@
                 return;
             }
             const tokenId = document.getElementById('tokenIdInput').value;
-            if (!tokenId || tokenId <= 0 || tokenId > 10000) {
-                showStatus('Please enter a valid Token ID (1-10000).');
+            if (!tokenId || tokenId <= 0) {
+                showStatus('Please enter a valid Token ID (1 or greater).');
                 return;
             }
             if (!checkColorConflict()) {
@@ -1068,7 +1104,12 @@
             }
             const tokenURI = canvas.toDataURL('image/png');
             try {
-                const cost = await okbMapContract.methods.cost().call();
+                let cost;
+                try {
+                    cost = await okbMapContract.methods.getMintCost(tokenId).call();
+                } catch (error) {
+                    cost = await okbMapContract.methods.cost().call();
+                }
                 const gas = await okbMapContract.methods.mintNFT(tokenURI, attributes).estimateGas({
                     from: accounts[0],
                     value: cost
