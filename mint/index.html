@@ -412,9 +412,11 @@
                 <button onclick="downloadGrid()">Download Image</button>
             </div>
             <div class="mint-section">
-                <label for="tokenIdInput">Enter Token ID</label>
-                <input type="number" id="tokenIdInput" placeholder="Enter Token ID" oninput="checkTokenStatus()">
+                <label for="mapNameInput">Enter Map Name (Token ID)</label>
+                <input type="number" id="mapNameInput" placeholder="Enter Map Name (0 or greater)" oninput="checkMapStatus()">
                 <div id="mintCost" class="status"></div>
+                <div id="okbBalance" class="status"></div>
+                <div id="blockStatus" class="status"></div>
                 <button id="mintButton" onclick="mintNFT()" disabled>Mint NFT</button>
             </div>
             <div id="transactionStatus" class="status"></div>
@@ -426,7 +428,7 @@
     <script>
         let web3, accounts, okbMapContract;
 
-        const contractAddress = '0x4fb9E04Fb3B998B74c9F9986D377348313Bc25E3';
+        const contractAddress = '0x342c1c0160075847A167aDb739eCd465D9385103';
         const contractABI = [
             {
                 "inputs": [],
@@ -456,6 +458,16 @@
             {
                 "anonymous": false,
                 "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "minter", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "mapName", "type": "uint256"},
+                    {"indexed": false, "internalType": "string", "name": "uri", "type": "string"}
+                ],
+                "name": "Minted",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
                     {"indexed": true, "internalType": "address", "name": "previousOwner", "type": "address"},
                     {"indexed": true, "internalType": "address", "name": "newOwner", "type": "address"}
                 ],
@@ -470,6 +482,24 @@
                     {"indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256"}
                 ],
                 "name": "Transfer",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "uint256", "name": "mapName", "type": "uint256"},
+                    {"indexed": false, "internalType": "string", "name": "newURI", "type": "string"}
+                ],
+                "name": "MetadataUpdated",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "owner", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+                ],
+                "name": "Withdrawn",
                 "type": "event"
             },
             {
@@ -495,13 +525,50 @@
             },
             {
                 "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
                 ],
                 "name": "getApproved",
                 "outputs": [
                     {"internalType": "address", "name": "", "type": "address"}
                 ],
                 "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
+                ],
+                "name": "getMapInfo",
+                "outputs": [
+                    {"internalType": "address", "name": "owner", "type": "address"},
+                    {"internalType": "uint256", "name": "mintCost", "type": "uint256"},
+                    {"internalType": "uint256", "name": "blockStart", "type": "uint256"},
+                    {"internalType": "uint256", "name": "blockEnd", "type": "uint256"}
+                ],
+                "name": "getMapInfo",
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
+                ],
+                "name": "getMapName",
+                "outputs": [
+                    {"internalType": "string", "name": "", "type": "string"}
+                ],
+                "stateMutability": "pure",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
+                ],
+                "name": "getMintCost",
+                "outputs": [
+                    {"internalType": "uint256", "name": "", "type": "uint256"}
+                ],
+                "stateMutability": "pure",
                 "type": "function"
             },
             {
@@ -518,6 +585,7 @@
             },
             {
                 "inputs": [
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"},
                     {"internalType": "string", "name": "uri", "type": "string"},
                     {"internalType": "string[]", "name": "attributes", "type": "string[]"}
                 ],
@@ -546,7 +614,7 @@
             },
             {
                 "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
                 ],
                 "name": "ownerOf",
                 "outputs": [
@@ -597,15 +665,6 @@
             },
             {
                 "inputs": [
-                    {"internalType": "uint256", "name": "_newCost", "type": "uint256"}
-                ],
-                "name": "setCost",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
                     {"internalType": "bytes4", "name": "interfaceId", "type": "bytes4"}
                 ],
                 "name": "supportsInterface",
@@ -649,7 +708,7 @@
             },
             {
                 "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"}
                 ],
                 "name": "tokenURI",
                 "outputs": [
@@ -689,7 +748,7 @@
             },
             {
                 "inputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"},
                     {"internalType": "string", "name": "newTokenURI", "type": "string"}
                 ],
                 "name": "updateTokenMetadata",
@@ -699,8 +758,7 @@
             },
             {
                 "inputs": [
-                    {"internalType": "address", "name": "to", "type": "address"},
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+                    {"internalType": "uint256", "name": "mapName", "type": "uint256"},
                     {"internalType": "string", "name": "uri", "type": "string"},
                     {"internalType": "bytes32", "name": "attributes", "type": "bytes32"}
                 ],
@@ -728,19 +786,10 @@
                 "type": "function"
             },
             {
-                "inputs": [],
-                "name": "cost",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
                 "inputs": [
                     {"internalType": "address", "name": "", "type": "address"}
                 ],
-                "name": "addressMintedBalance",
+                "name": "mintedCount",
                 "outputs": [
                     {"internalType": "uint256", "name": "", "type": "uint256"}
                 ],
@@ -768,17 +817,6 @@
                 ],
                 "stateMutability": "view",
                 "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "name": "mintedCount",
-                "outputs": [
-                    {"internalType": "uint256", "name": "", "type": "uint256"}
-                ],
-                "stateMutability": "view",
-                "type": "function"
             }
         ];
 
@@ -795,68 +833,133 @@
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const chainId = await web3.eth.getChainId();
                 if (chainId !== 196) {
-                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xc4' }] });
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xc4' }]
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xc4',
+                                    chainName: 'X Layer',
+                                    nativeCurrency: {
+                                        name: 'OKB',
+                                        symbol: 'OKB',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://rpc.xlayer.tech'],
+                                    blockExplorerUrls: ['https://www.okx.com/web3/explorer/xlayer']
+                                }]
+                            });
+                        } else {
+                            throw switchError;
+                        }
+                    }
                 }
                 accounts = await web3.eth.getAccounts();
                 okbMapContract = new web3.eth.Contract(contractABI, contractAddress);
                 document.getElementById('walletStatus').innerText = `Connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
                 enableInputs(true);
-                checkTokenStatus();
+                updateOKBBalance();
+                checkMapStatus();
             } catch (error) {
                 showStatus('Failed to connect: ' + error.message);
             }
         }
 
+        // Enable or disable inputs
         function enableInputs(enabled) {
-            document.getElementById('tokenIdInput').disabled = !enabled;
+            document.getElementById('mapNameInput').disabled = !enabled;
             document.getElementById('mintButton').disabled = !enabled;
         }
 
-        // Check token status and mint cost
-        async function checkTokenStatus() {
+        // Update OKB balance
+        async function updateOKBBalance() {
+            if (!web3 || !accounts) {
+                document.getElementById('okbBalance').innerText = 'Please connect wallet to view OKB balance.';
+                return;
+            }
+            try {
+                const balance = await web3.eth.getBalance(accounts[0]);
+                const okbBalance = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('okbBalance').innerText = `OKB Balance: ${parseFloat(okbBalance).toFixed(4)} OKB`;
+                return okbBalance;
+            } catch (error) {
+                document.getElementById('okbBalance').innerText = 'Error fetching OKB balance: ' + error.message;
+                return 0;
+            }
+        }
+
+        // Check map status and mint cost
+        async function checkMapStatus() {
             if (!web3 || !accounts) {
                 document.getElementById('mintCost').innerText = 'Please connect wallet first.';
+                document.getElementById('blockStatus').innerText = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
             }
-            const tokenId = document.getElementById('tokenIdInput').value;
-            if (!tokenId || tokenId <= 0) {
-                document.getElementById('mintCost').innerText = 'Please enter a valid Token ID (1 or greater).';
+            const mapName = document.getElementById('mapNameInput').value;
+            if (mapName === '' || isNaN(mapName) || mapName < 0) {
+                document.getElementById('mintCost').innerText = 'Please enter a valid Map Name (0 or greater).';
+                document.getElementById('blockStatus').innerText = '';
                 document.getElementById('mintButton').disabled = true;
                 return;
             }
             try {
-                // Try to fetch mint cost with getMintCost, fallback to cost
-                let cost;
-                try {
-                    cost = await okbMapContract.methods.getMintCost(tokenId).call();
-                } catch (error) {
-                    cost = await okbMapContract.methods.cost().call();
-                }
-                document.getElementById('mintCost').innerText = `Mint Cost: ${web3.utils.fromWei(cost, 'ether')} ETH`;
+                // Get mint cost
+                const cost = await okbMapContract.methods.getMintCost(mapName).call();
+                const costInOKB = web3.utils.fromWei(cost, 'ether');
+                document.getElementById('mintCost').innerText = `Mint Cost: ${costInOKB} OKB`;
 
-                // Check if tokenId is already minted
+                // Check OKB balance
+                const balance = await web3.eth.getBalance(accounts[0]);
+                const balanceInOKB = web3.utils.fromWei(balance, 'ether');
+                if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
+                    document.getElementById('mintCost').innerHTML += `<br>Insufficient OKB balance. Required: ${costInOKB} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`;
+                    document.getElementById('mintButton').disabled = true;
+                } else {
+                    document.getElementById('mintButton').disabled = false;
+                }
+
+                // Check block height
+                const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
+                const currentBlock = await web3.eth.getBlockNumber();
+                const blockStart = mapInfo.blockStart;
+                const blockEnd = mapInfo.blockEnd;
+                if (currentBlock < blockStart || currentBlock >= blockEnd) {
+                    document.getElementById('blockStatus').innerText = `Invalid block height for Map Name ${mapName}. Required: ${blockStart} to ${blockEnd - 1}, Current: ${currentBlock}`;
+                    document.getElementById('mintButton').disabled = true;
+                } else {
+                    document.getElementById('blockStatus').innerText = `Block height valid: ${blockStart} to ${blockEnd - 1}, Current: ${currentBlock}`;
+                }
+
+                // Check if mapName is already minted
                 try {
-                    const owner = await okbMapContract.methods.ownerOf(tokenId).call();
+                    const owner = await okbMapContract.methods.ownerOf(mapName).call();
                     const events = await okbMapContract.getPastEvents('Transfer', {
-                        filter: { tokenId: tokenId, from: '0x0000000000000000000000000000000000000000' },
+                        filter: { tokenId: mapName, from: '0x0000000000000000000000000000000000000000' },
                         fromBlock: 0,
                         toBlock: 'latest'
                     });
                     const blockNumber = events.length > 0 ? events[0].blockNumber : 'Unknown';
-                    document.getElementById('mintCost').innerHTML += `<br>Token ID ${tokenId} is already minted. Owner: <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>, Block Number: ${blockNumber}`;
+                    document.getElementById('mintCost').innerHTML += `<br>Map Name ${mapName} is already minted. Owner: <a href="https://www.okx.com/web3/explorer/xlayer/address/${owner}" target="_blank">${owner.slice(0, 6)}...${owner.slice(-4)}</a>, Block Number: ${blockNumber}`;
                     document.getElementById('mintButton').disabled = true;
                 } catch (error) {
-                    if (error.message.includes('nonexistent token')) {
-                        document.getElementById('mintButton').disabled = false;
-                        document.getElementById('mintCost').innerHTML = `Mint Cost: ${web3.utils.fromWei(cost, 'ether')} ETH<br>Token ID ${tokenId} is available for minting.`;
+                    if (error.message.includes('nonexistent')) {
+                        if (parseFloat(balanceInOKB) >= parseFloat(costInOKB) && currentBlock >= blockStart && currentBlock < blockEnd) {
+                            document.getElementById('mintButton').disabled = false;
+                        }
                     } else {
-                        document.getElementById('mintCost').innerText = 'Error checking token status: ' + error.message;
+                        document.getElementById('mintCost').innerText = `Error checking map status: ${error.message}`;
                         document.getElementById('mintButton').disabled = true;
                     }
                 }
             } catch (error) {
-                document.getElementById('mintCost').innerText = 'Error fetching cost: ' + error.message;
+                document.getElementById('mintCost').innerText = `Error fetching cost: ${error.message}`;
+                document.getElementById('blockStatus').innerText = '';
                 document.getElementById('mintButton').disabled = true;
             }
         }
@@ -1050,8 +1153,8 @@
 
         // Get attributes for minting
         function getAttributes() {
-            const tokenId = document.getElementById('tokenIdInput').value;
-            const digitCount = tokenId.toString().length;
+            const mapName = document.getElementById('mapNameInput').value;
+            const digitCount = mapName.toString().length;
             return [
                 colorNames[soilColors.indexOf(colors.center)] + '1',
                 colorNames[petColors.indexOf(colors.corner1) + 40] + '2',
@@ -1083,53 +1186,118 @@
             }
         }
 
-        // Mint NFT
-        async function mintNFT() {
-            if (!web3 || !accounts) {
-                showStatus('Please connect wallet first.');
+     // Mint NFT
+async function mintNFT() {
+    if (!web3 || !accounts) {
+        showStatus('Please connect wallet first.');
+        return;
+    }
+
+    const mapNameInput = document.getElementById('mapNameInput').value;
+    if (mapNameInput === '' || isNaN(mapNameInput) || mapNameInput < 0) {
+        showStatus('Please enter a valid Map Name (0 or greater).');
+        return;
+    }
+    const mapName = parseInt(mapNameInput);
+
+    // Check color conflict
+    if (!checkColorConflict()) {
+        return;
+    }
+
+    // Get attributes
+    const attributes = getAttributes();
+    if (attributes.length !== 7) {
+        showStatus('Invalid number of attributes. Must be exactly 7.');
+        return;
+    }
+
+    // Check attribute uniqueness
+    const isUnique = await checkAttributeUniqueness(attributes);
+    if (!isUnique) {
+        return;
+    }
+
+    // Generate token URI (using canvas image)
+    const tokenURI = canvas.toDataURL('image/png');
+
+    try {
+        // Get mint cost
+        const cost = await okbMapContract.methods.getMintCost(mapName).call();
+        const costInOKB = web3.utils.fromWei(cost, 'ether');
+
+        // Check OKB balance
+        const balance = await web3.eth.getBalance(accounts[0]);
+        const balanceInOKB = web3.utils.fromWei(balance, 'ether');
+        if (parseFloat(balanceInOKB) < parseFloat(costInOKB)) {
+            showStatus(`Insufficient OKB balance. Required: ${parseFloat(costInOKB).toFixed(4)} OKB, Available: ${parseFloat(balanceInOKB).toFixed(4)} OKB`);
+            return;
+        }
+
+        // Check block height
+        const mapInfo = await okbMapContract.methods.getMapInfo(mapName).call();
+        const currentBlock = await web3.eth.getBlockNumber();
+        if (currentBlock < mapInfo.blockStart || currentBlock >= mapInfo.blockEnd) {
+            showStatus(`Invalid block height for Map Name ${mapName}. Required: ${mapInfo.blockStart} to ${mapInfo.blockEnd - 1}, Current: ${currentBlock}`);
+            return;
+        }
+
+        // Check if mapName is already minted
+        try {
+            await okbMapContract.methods.ownerOf(mapName).call();
+            showStatus(`Map Name ${mapName} is already minted.`);
+            return;
+        } catch (error) {
+            if (!error.message.includes('nonexistent')) {
+                showStatus(`Error checking map status: ${error.message}`);
                 return;
-            }
-            const tokenId = document.getElementById('tokenIdInput').value;
-            if (!tokenId || tokenId <= 0) {
-                showStatus('Please enter a valid Token ID (1 or greater).');
-                return;
-            }
-            if (!checkColorConflict()) {
-                return;
-            }
-            const attributes = getAttributes();
-            const isUnique = await checkAttributeUniqueness(attributes);
-            if (!isUnique) {
-                return;
-            }
-            const tokenURI = canvas.toDataURL('image/png');
-            try {
-                let cost;
-                try {
-                    cost = await okbMapContract.methods.getMintCost(tokenId).call();
-                } catch (error) {
-                    cost = await okbMapContract.methods.cost().call();
-                }
-                const gas = await okbMapContract.methods.mintNFT(tokenURI, attributes).estimateGas({
-                    from: accounts[0],
-                    value: cost
-                });
-                const tx = await okbMapContract.methods.mintNFT(tokenURI, attributes).send({
-                    from: accounts[0],
-                    value: cost,
-                    gas: Math.floor(gas * 1.2)
-                });
-                showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
-            } catch (error) {
-                showStatus('Mint failed: ' + error.message);
             }
         }
 
-        // Event listeners
-        document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        window.onload = () => {
-            generateGrid();
-        };
+        // Estimate gas
+        let gas;
+        try {
+            gas = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).estimateGas({
+                from: accounts[0],
+                value: cost
+            });
+        } catch (error) {
+            showStatus(`Gas estimation failed: ${error.message}`);
+            return;
+        }
+
+        // Send transaction
+        showStatus('Minting in progress...');
+        const tx = await okbMapContract.methods.mintNFT(mapName, tokenURI, attributes).send({
+            from: accounts[0],
+            value: cost,
+            gas: Math.floor(gas * 1.2) // Add 20% buffer to gas limit
+        });
+
+        // Success
+        showStatus(`Mint successful! Transaction Hash: <a href="https://www.okx.com/web3/explorer/xlayer/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash.slice(0, 6)}...${tx.transactionHash.slice(-4)}</a>`);
+        checkMapStatus();
+        updateOKBBalance();
+    } catch (error) {
+        let errorMessage = 'Mint failed: ';
+        if (error.message.includes('Insufficient funds')) {
+            errorMessage += 'Insufficient OKB for transaction or gas.';
+        } else if (error.message.includes('Invalid block height')) {
+            errorMessage += 'Block height is invalid for this Map Name.';
+        } else if (error.message.includes('Attribute combination already used')) {
+            errorMessage += 'This attribute combination has already been used.';
+        } else if (error.message.includes('Map already minted')) {
+            errorMessage += `Map Name ${mapName} is already minted.`;
+        } else {
+            errorMessage += error.message;
+        }
+        showStatus(errorMessage);
+    }
+}
+
+// Initialize
+document.getElementById('connectWallet').addEventListener('click', connectWallet);
+generateGrid(); // Generate initial grid on page load
     </script>
 </body>
 </html>
